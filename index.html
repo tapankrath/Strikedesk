@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>StrikeDesk — Ready-Made Option Trades</title>
+
+<!-- Add to Home Screen support (iOS + Android) -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0E1116">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StrikeDesk">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1116;
+    --panel:#151A21;
+    --panel-2:#1B2129;
+    --border:#262E39;
+    --border-soft:#1E252E;
+    --text:#E7E9EC;
+    --text-dim:#8A93A3;
+    --text-faint:#5B6472;
+    --amber:#F0A937;
+    --amber-dim:#7A5A22;
+    --green:#33C98A;
+    --green-dim:#12362A;
+    --red:#FF6B6B;
+    --red-dim:#3A1E20;
+    --radius:8px;
+    --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+    --mono: 'IBM Plex Mono', 'SF Mono', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding-top:env(safe-area-inset-top);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  ::selection{ background:var(--amber); color:#0E1116; }
+  button{ font-family:inherit; cursor:pointer; }
+  input{ font-family:inherit; }
+
+  .num{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+
+  /* ---------- HEADER ---------- */
+  header{
+    position:sticky; top:0; z-index:40;
+    background:rgba(14,17,22,0.92);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+  }
+  .header-inner{
+    max-width:1320px; margin:0 auto;
+    padding:14px 20px;
+    display:flex; align-items:center; gap:18px;
+    flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .brand-mark{
+    width:30px; height:30px; border-radius:6px;
+    background:linear-gradient(155deg, var(--amber), #B97A1D);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-weight:700; color:#0E1116; font-size:14px;
+  }
+  .brand-name{ font-weight:600; font-size:15px; letter-spacing:0.01em; }
+  .brand-sub{ font-size:11px; color:var(--text-dim); font-family:var(--mono); letter-spacing:0.02em;}
+
+  .data-status{
+    display:flex; align-items:center; gap:7px;
+    font-family:var(--mono); font-size:11.5px; color:var(--text-dim);
+    padding:5px 10px; border:1px solid var(--border); border-radius:20px;
+    flex-shrink:0;
+  }
+  .pulse-dot{
+    width:6px; height:6px; border-radius:50%; background:var(--green);
+    box-shadow:0 0 0 0 rgba(51,201,138,0.6);
+    animation:pulse 2.2s infinite;
+  }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(51,201,138,0.45); }
+    70%{ box-shadow:0 0 0 6px rgba(51,201,138,0); }
+    100%{ box-shadow:0 0 0 0 rgba(51,201,138,0); }
+  }
+
+  .search-wrap{
+    flex:1 1 220px; min-width:160px;
+    display:flex; align-items:center; gap:8px;
+    background:var(--panel-2); border:1px solid var(--border);
+    border-radius:7px; padding:8px 12px;
+  }
+  .search-wrap svg{ flex-shrink:0; opacity:0.5; }
+  .search-wrap input{
+    background:transparent; border:none; outline:none;
+    color:var(--text); font-size:13.5px; width:100%;
+  }
+  .search-wrap input::placeholder{ color:var(--text-faint); }
+
+  .export-btn{
+    display:flex; align-items:center; gap:6px;
+    background:var(--panel-2); border:1px solid var(--border);
+    color:var(--text); padding:9px 14px; border-radius:7px;
+    font-size:13px; font-weight:500; flex-shrink:0;
+    transition:border-color .15s, background .15s;
+  }
+  .export-btn:hover{ border-color:var(--amber-dim); background:#1F2530; }
+  .export-btn:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
+
+  .filters-toggle{
+    display:none;
+    align-items:center; gap:7px;
+    background:var(--panel-2); border:1px solid var(--border);
+    color:var(--text); padding:9px 14px; border-radius:7px;
+    font-size:13px; font-weight:500;
+  }
+  .filters-toggle .count{
+    background:var(--amber); color:#0E1116; font-family:var(--mono);
+    font-size:11px; font-weight:700; padding:1px 6px; border-radius:10px;
+  }
+
+  /* ---------- LAYOUT ---------- */
+  .layout{
+    max-width:1320px; margin:0 auto;
+    display:grid; grid-template-columns:280px 1fr;
+    gap:22px; padding:22px 20px 60px;
+    align-items:start;
+  }
+
+  /* ---------- SIDEBAR ---------- */
+  aside{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:18px;
+    position:sticky; top:78px;
+    max-height:calc(100vh - 96px);
+    overflow-y:auto;
+  }
+  aside::-webkit-scrollbar{ width:6px; }
+  aside::-webkit-scrollbar-thumb{ background:var(--border); border-radius:3px; }
+
+  .filter-group{ margin-bottom:20px; }
+  .filter-group:last-child{ margin-bottom:0; }
+  .filter-group h3{
+    font-size:10.5px; font-weight:700; letter-spacing:0.08em;
+    color:var(--text-faint); text-transform:uppercase;
+    margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .filter-group h3 .active-badge{
+    color:var(--amber); font-family:var(--mono); font-size:10px;
+  }
+
+  .check-row{
+    display:flex; align-items:center; gap:9px;
+    padding:6px 4px; border-radius:5px; cursor:pointer;
+    font-size:13px; color:var(--text);
+    transition:background .12s;
+  }
+  .check-row:hover{ background:var(--panel-2); }
+  .check-row input[type="checkbox"]{
+    appearance:none; -webkit-appearance:none;
+    width:15px; height:15px; border-radius:4px;
+    border:1.5px solid var(--border);
+    background:var(--panel-2);
+    flex-shrink:0; position:relative; cursor:pointer;
+    transition:border-color .12s, background .12s;
+  }
+  .check-row input[type="checkbox"]:checked{
+    background:var(--amber); border-color:var(--amber);
+  }
+  .check-row input[type="checkbox"]:checked::after{
+    content:""; position:absolute; left:4px; top:1px;
+    width:4px; height:8px;
+    border:solid #0E1116; border-width:0 2px 2px 0;
+    transform:rotate(45deg);
+  }
+  .check-row input[type="checkbox"]:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
+  .check-row .label-sub{ color:var(--text-faint); font-size:11.5px; margin-left:2px; }
+  .check-row.disabled{ opacity:0.4; pointer-events:none; }
+
+  .radio-pair{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+  .radio-btn{
+    text-align:center; padding:9px 6px; border-radius:6px;
+    border:1px solid var(--border); background:var(--panel-2);
+    font-size:12px; color:var(--text-dim); font-weight:500;
+    transition:all .12s;
+  }
+  .radio-btn.active{ border-color:var(--amber); color:var(--amber); background:rgba(240,169,55,0.08); }
+
+  hr.div{ border:none; border-top:1px solid var(--border-soft); margin:18px 0; }
+
+  .expiry-row{ display:flex; gap:8px; margin-bottom:8px; }
+  .expiry-row select, .expiry-row input{
+    flex:1; background:var(--panel-2); border:1px solid var(--border);
+    color:var(--text); font-size:12.5px; padding:8px 9px; border-radius:6px;
+  }
+
+  /* metrics chip grid */
+  .metric-grid{ display:grid; grid-template-columns:1fr 1fr; gap:2px 10px; }
+
+  /* AI card */
+  .ai-card{
+    margin-top:18px; padding:14px;
+    background:linear-gradient(160deg, #1C1508, var(--panel-2));
+    border:1px solid var(--amber-dim);
+    border-radius:8px;
+  }
+  .ai-card h4{
+    font-size:12px; font-weight:600; color:var(--amber);
+    display:flex; align-items:center; gap:6px; margin-bottom:9px;
+  }
+  .ai-card select{
+    width:100%; background:var(--panel); border:1px solid var(--border);
+    color:var(--text); font-size:12.5px; padding:9px 10px; border-radius:6px;
+    margin-bottom:9px;
+  }
+  .ai-card p{ font-size:11.5px; color:var(--text-dim); line-height:1.5; margin-bottom:10px; }
+  .ai-card p a{ color:var(--amber); text-decoration:none; }
+  .ai-card button{
+    width:100%; background:var(--amber); color:#0E1116;
+    border:none; padding:10px; border-radius:6px;
+    font-weight:600; font-size:12.5px;
+    transition:filter .12s;
+  }
+  .ai-card button:hover{ filter:brightness(1.08); }
+  .ai-card button:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+
+  /* sticky apply/reset bar */
+  .apply-bar{
+    position:sticky; bottom:-18px;
+    margin:18px -18px -18px;
+    padding:12px 18px;
+    background:var(--panel);
+    border-top:1px solid var(--border);
+    display:flex; gap:8px; align-items:center;
+    z-index:5;
+  }
+  .apply-btn{
+    flex:1; background:var(--amber); color:#0E1116; border:none;
+    padding:11px; border-radius:7px; font-weight:700; font-size:13px;
+    transition:filter .12s;
+  }
+  .apply-btn:hover{ filter:brightness(1.08); }
+  .apply-btn:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+  .reset-btn{
+    background:transparent; border:1px solid var(--border); color:var(--text-dim);
+    padding:11px 14px; border-radius:7px; font-size:13px; font-weight:500;
+    transition:border-color .12s, color .12s;
+  }
+  .reset-btn:hover{ border-color:var(--text-dim); color:var(--text); }
+
+  /* trade detail modal */
+  .modal-scrim{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
+    z-index:80; align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-scrim.show{ display:flex; }
+  .trade-modal{
+    width:100%; max-width:440px; background:var(--panel);
+    border:1px solid var(--border); border-radius:12px;
+    padding:22px; max-height:86vh; overflow-y:auto;
+  }
+  .modal-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px; }
+  .modal-close{
+    background:transparent; border:1px solid var(--border); color:var(--text-dim);
+    width:28px; height:28px; border-radius:6px; font-size:15px; line-height:1;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .modal-close:hover{ color:var(--text); border-color:var(--text-dim); }
+  .modal-strat{ font-size:12.5px; color:var(--text-dim); margin-bottom:16px; }
+  .modal-metrics{
+    display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;
+    padding:14px 0; border-top:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);
+    margin-bottom:16px;
+  }
+  .mm-label{ font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; }
+  .mm-val{ font-family:var(--mono); font-size:14.5px; font-weight:600; }
+  .modal-note{ font-size:12px; color:var(--text-dim); line-height:1.55; margin-bottom:16px; }
+  .modal-copy-btn{
+    width:100%; background:var(--amber); color:#0E1116; border:none;
+    padding:11px; border-radius:7px; font-weight:700; font-size:13px;
+  }
+
+  /* apply feedback toast */
+  .toast{
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
+    background:var(--panel-2); border:1px solid var(--amber-dim); color:var(--amber);
+    font-family:var(--mono); font-size:12.5px; font-weight:600;
+    padding:10px 18px; border-radius:20px; z-index:90;
+    opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ---------- MAIN ---------- */
+  main{ min-width:0; }
+  .results-bar{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:14px; gap:12px; flex-wrap:wrap;
+  }
+  .results-count{ font-size:13.5px; color:var(--text-dim); }
+  .results-count strong{ color:var(--text); font-family:var(--mono); }
+  .sort-wrap{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-dim); }
+  .sort-wrap select{
+    background:var(--panel-2); border:1px solid var(--border);
+    color:var(--text); padding:7px 10px; border-radius:6px; font-size:12.5px;
+  }
+
+  /* table (desktop) */
+  .table-wrap{
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:var(--radius); overflow:hidden;
+  }
+  table{ width:100%; border-collapse:collapse; }
+  thead th{
+    text-align:left; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--text-faint); font-weight:600; padding:11px 14px;
+    border-bottom:1px solid var(--border); white-space:nowrap;
+    background:var(--panel-2);
+  }
+  tbody tr{ border-bottom:1px solid var(--border-soft); transition:background .12s; }
+  tbody tr:last-child{ border-bottom:none; }
+  tbody tr:hover{ background:var(--panel-2); }
+  tbody td{ padding:13px 14px; font-size:13px; vertical-align:middle; white-space:nowrap; }
+
+  .ticker-cell{ display:flex; align-items:center; gap:9px; }
+  .ticker-sym{ font-weight:700; font-family:var(--mono); font-size:13.5px; }
+  .strat-name{ font-size:11.5px; color:var(--text-dim); }
+
+  .side-pill{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:3px 8px; border-radius:20px; font-size:11px; font-weight:600;
+  }
+  .side-pill.bull{ background:var(--green-dim); color:var(--green); }
+  .side-pill.bear{ background:var(--red-dim); color:var(--red); }
+  .side-pill.dot{ width:5px; height:5px; border-radius:50%; background:currentColor; }
+
+  .val-pos{ color:var(--green); }
+  .val-neg{ color:var(--red); }
+
+  /* composite meter — signature element */
+  .meter{ display:flex; align-items:center; gap:8px; }
+  .meter-ticks{ display:flex; gap:2px; }
+  .meter-ticks span{
+    width:4px; height:14px; border-radius:1px; background:var(--border);
+  }
+  .meter-ticks span.on{ background:var(--amber); }
+  .meter-score{ font-family:var(--mono); font-size:12.5px; font-weight:600; color:var(--amber); min-width:26px; }
+
+  .row-action{
+    background:transparent; border:1px solid var(--border);
+    color:var(--text-dim); padding:6px 12px; border-radius:6px; font-size:11.5px;
+    font-weight:500; transition:all .12s;
+  }
+  .row-action:hover{ border-color:var(--amber); color:var(--amber); }
+
+  /* mobile cards (hidden on desktop) */
+  .card-list{ display:none; flex-direction:column; gap:10px; }
+  .trade-card{
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:var(--radius); padding:14px;
+  }
+  .trade-card-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+  .trade-card-metrics{
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;
+    padding-top:10px; border-top:1px solid var(--border-soft);
+  }
+  .tcm-label{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:2px; }
+  .tcm-val{ font-family:var(--mono); font-size:13px; font-weight:600; }
+
+  footer{
+    max-width:1320px; margin:0 auto; padding:20px 20px 40px;
+    font-size:11px; color:var(--text-faint); line-height:1.6;
+    border-top:1px solid var(--border-soft);
+  }
+
+  /* ---------- MOBILE ---------- */
+  @media (max-width: 880px){
+    .layout{ grid-template-columns:1fr; padding:16px 14px 50px; gap:14px; }
+    .filters-toggle{ display:flex; }
+    aside{
+      display:none;
+      position:fixed; inset:0; top:auto; bottom:0; left:0; right:0;
+      max-height:88vh; border-radius:16px 16px 0 0;
+      z-index:60; margin:0;
+    }
+    aside.open{ display:block; }
+    .aside-mobile-header{
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--border);
+    }
+    .aside-mobile-header button{
+      background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+      padding:7px 12px; border-radius:6px; font-size:12.5px; font-weight:600;
+    }
+    .aside-close-x{
+      background:transparent !important; border:none !important; color:var(--text-dim) !important;
+      font-size:18px; padding:2px 6px !important;
+    }
+    .scrim{
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
+      z-index:55;
+    }
+    .scrim.show{ display:block; }
+
+    .table-wrap{ display:none; }
+    .card-list{ display:flex; }
+
+    .header-inner{ padding:12px 14px; }
+    .brand-sub{ display:none; }
+    .search-wrap{ order:3; flex-basis:100%; }
+    .metric-grid{ grid-template-columns:1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-mark">SD</div>
+      <div>
+        <div class="brand-name">StrikeDesk</div>
+        <div class="brand-sub">READY-MADE OPTION TRADES</div>
+      </div>
+    </div>
+
+    <div class="data-status">
+      <span class="pulse-dot"></span>
+      EOD data · Aug 26 close
+    </div>
+
+    <div class="search-wrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search ticker or strategy…" id="searchInput">
+    </div>
+
+    <button class="filters-toggle" id="filtersToggle">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/></svg>
+      Filters <span class="count" id="filterCount">2</span>
+    </button>
+
+    <button class="export-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export JSON / XML
+    </button>
+  </div>
+</header>
+
+<div class="scrim" id="scrim"></div>
+
+<div class="layout">
+
+  <aside id="filterPanel">
+    <div class="aside-mobile-header">
+      <span style="font-weight:600; font-size:14px;">Filters</span>
+      <button class="aside-close-x" id="closeFilters">✕</button>
+    </div>
+
+    <div class="filter-group">
+      <h3>Outlook</h3>
+      <div class="radio-pair">
+        <div class="radio-btn active" data-outlook="bull">Bullish</div>
+        <div class="radio-btn" data-outlook="bear">Bearish</div>
+      </div>
+      <label class="check-row"><input type="checkbox" checked data-strat="Short Put"> Short Put</label>
+      <label class="check-row"><input type="checkbox" data-strat="Covered Call"> Covered Call</label>
+      <label class="check-row"><input type="checkbox" data-strat="Bull Put Spread"> Bull Put Spread</label>
+      <label class="check-row disabled"><input type="checkbox" disabled data-strat="Long Call"> Long Call</label>
+    </div>
+
+    <hr class="div">
+
+    <div class="filter-group">
+      <h3>Quality</h3>
+      <label class="check-row"><input type="checkbox" checked data-quality="buy"> Buy signal</label>
+      <label class="check-row"><input type="checkbox" data-quality="sell"> Sell signal</label>
+      <label class="check-row"><input type="checkbox" data-quality="ema"> Finds support at EMA 8/20</label>
+    </div>
+
+    <hr class="div">
+
+    <div class="filter-group">
+      <h3>Risk</h3>
+      <label class="check-row"><input type="checkbox" data-risk="excludeEarnings"> Exclude earnings within DTE</label>
+      <label class="check-row"><input type="checkbox" data-risk="etfOnly"> ETFs only</label>
+      <label class="check-row"><input type="checkbox" data-risk="marginOfSafety"> Margin of safety (ATR-based)</label>
+    </div>
+
+    <hr class="div">
+
+    <div class="filter-group">
+      <h3>Reward</h3>
+      <label class="check-row"><input type="checkbox" checked data-reward="ann20"> Min 20% annualized profit</label>
+      <label class="check-row"><input type="checkbox" data-reward="daily10"> Min $10 daily return</label>
+      <label class="check-row"><input type="checkbox" data-reward="roc08"> RoC % &gt; 0.8%</label>
+    </div>
+
+    <hr class="div">
+
+    <div class="filter-group">
+      <h3>Expiration</h3>
+      <div class="expiry-row">
+        <select id="expiryMode"><option>By DTE</option><option>By date</option></select>
+        <input type="text" placeholder="Min. days" id="dteMinInput" inputmode="numeric">
+      </div>
+    </div>
+
+    <hr class="div">
+
+    <div class="filter-group">
+      <h3>Select Metrics <span class="active-badge">4 shown</span></h3>
+      <div class="metric-grid">
+        <label class="check-row"><input type="checkbox" checked> Probability of Touch</label>
+        <label class="check-row"><input type="checkbox"> Margin of Safety</label>
+        <label class="check-row"><input type="checkbox"> Expected Premium</label>
+        <label class="check-row"><input type="checkbox"> Daily Return</label>
+        <label class="check-row"><input type="checkbox" checked> Annualized Profit</label>
+        <label class="check-row"><input type="checkbox"> Risk / Reward Ratio</label>
+        <label class="check-row"><input type="checkbox"> Option Delta</label>
+        <label class="check-row"><input type="checkbox"> Implied Volatility</label>
+        <label class="check-row"><input type="checkbox"> Implied Movement</label>
+        <label class="check-row"><input type="checkbox"> 25 Delta Skew</label>
+        <label class="check-row"><input type="checkbox"> Bid-Ask Spread</label>
+        <label class="check-row"><input type="checkbox"> Call Volume</label>
+        <label class="check-row"><input type="checkbox"> Put Volume</label>
+        <label class="check-row"><input type="checkbox"> Call Open Interest</label>
+        <label class="check-row"><input type="checkbox"> Put Open Interest</label>
+        <label class="check-row"><input type="checkbox"> Put/Call Open Interest</label>
+        <label class="check-row"><input type="checkbox"> Put/Call Volume</label>
+        <label class="check-row"><input type="checkbox"> Total Options Trend</label>
+      </div>
+    </div>
+
+    <div class="ai-card">
+      <h4>✦ AI Trade Analysis</h4>
+      <select>
+        <option>Bullish — strongest upside setups</option>
+        <option>Bearish — strongest downside setups</option>
+        <option>Income — highest annualized yield</option>
+        <option>Conservative — lowest probability of touch</option>
+      </select>
+      <p>Copy the prompt into any AI chat for personalized trade commentary. For better results, also paste <a href="#">Market Regime</a> data into the same chat.</p>
+      <button>Copy Prompt</button>
+    </div>
+
+    <div class="apply-bar">
+      <button class="reset-btn" id="resetFilters">Reset</button>
+      <button class="apply-btn" id="applyFilters">Apply filters</button>
+    </div>
+  </aside>
+
+  <main>
+    <div class="results-bar">
+      <div class="results-count"><strong id="resultCount">6</strong> setups match your filters</div>
+      <div class="sort-wrap">
+        Sort by
+        <select>
+          <option>Composite rating</option>
+          <option>Annualized profit</option>
+          <option>Probability of touch</option>
+          <option>Days to expiration</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- DESKTOP TABLE -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Symbol / Strategy</th>
+            <th>Side</th>
+            <th>Exp / DTE</th>
+            <th>Prob. of Touch</th>
+            <th>Ann. Profit</th>
+            <th>IV Rank</th>
+            <th>Composite</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- MOBILE CARDS -->
+    <div class="card-list" id="cardList"></div>
+
+    <footer>
+      Data reflects the prior session's close (EOD), snapshotted shortly before market close to avoid wide bid/ask distortion. This tool surfaces candidate setups for research purposes only and is not a recommendation to buy or sell any security. Screen for real-time or 15-minute-delayed pricing before entering a trade — quotes shown may be stale relative to the live market.
+    </footer>
+  </main>
+</div>
+
+<div class="modal-scrim" id="modalScrim">
+  <div class="trade-modal" id="tradeModal"></div>
+</div>
+
+<div class="toast" id="toast">Filters applied</div>
+
+<script>
+  // Mock EOD dataset — fields line up with the filter controls above.
+  const trades = [
+    { sym:"AAPL", strat:"Short Put",       side:"bull", isETF:false, strike:"$225 P",   exp:"Sep 19", dte:23, pot:18, ap:24.6, ivr:41, dailyReturn:12.30, roc:1.10, score:8, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:-0.22, iv:34.2, premium:2.15, breakeven:222.85, maxLoss:22285 },
+    { sym:"MSFT", strat:"Bull Put Spread", side:"bull", isETF:false, strike:"$480/470", exp:"Oct 17", dte:51, pot:14, ap:19.2, ivr:33, dailyReturn:7.10,  roc:0.62, score:7, buy:true,  sell:false, ema:false, earningsSoon:true,  marginOfSafety:true,  delta:-0.18, iv:28.7, premium:3.40, breakeven:476.60, maxLoss:660    },
+    { sym:"NVDA", strat:"Covered Call",    side:"bull", isETF:false, strike:"$185 C",   exp:"Sep 19", dte:23, pot:29, ap:31.4, ivr:58, dailyReturn:18.40, roc:1.35, score:6, buy:false, sell:true,  ema:false, earningsSoon:true,  marginOfSafety:false, delta:0.31,  iv:51.5, premium:4.80, breakeven:180.20, maxLoss:18020  },
+    { sym:"XOM",  strat:"Short Put",       side:"bull", isETF:false, strike:"$108 P",   exp:"Sep 5",  dte:9,  pot:11, ap:21.8, ivr:27, dailyReturn:9.80,  roc:0.95, score:9, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:-0.15, iv:22.4, premium:1.05, breakeven:106.95, maxLoss:10695  },
+    { sym:"TSLA", strat:"Bear Call Spread",side:"bear", isETF:false, strike:"$430/440", exp:"Sep 19", dte:23, pot:22, ap:26.1, ivr:64, dailyReturn:14.20, roc:1.05, score:6, buy:false, sell:true,  ema:false, earningsSoon:true,  marginOfSafety:false, delta:0.24,  iv:59.8, premium:3.90, breakeven:433.90, maxLoss:610    },
+    { sym:"JPM",  strat:"Short Put",       side:"bull", isETF:false, strike:"$285 P",   exp:"Oct 17", dte:51, pot:16, ap:17.5, ivr:24, dailyReturn:6.40,  roc:0.55, score:8, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:-0.19, iv:20.1, premium:2.70, breakeven:282.30, maxLoss:28230  },
+    { sym:"SPY",  strat:"Covered Call",    side:"bull", isETF:true,  strike:"$580 C",   exp:"Sep 19", dte:23, pot:19, ap:15.9, ivr:18, dailyReturn:5.20,  roc:0.48, score:7, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:0.27,  iv:15.6, premium:3.10, breakeven:576.90, maxLoss:57690  },
+    { sym:"META", strat:"Bull Put Spread", side:"bull", isETF:false, strike:"$700/685", exp:"Sep 5",  dte:9,  pot:24, ap:29.7, ivr:52, dailyReturn:16.90, roc:1.22, score:5, buy:false, sell:false, ema:false, earningsSoon:true,  marginOfSafety:false, delta:-0.29, iv:47.3, premium:5.60, breakeven:694.40, maxLoss:940    },
+  ];
+
+  let currentList = [];
+
+  const tbody = document.getElementById('tableBody');
+  const cardList = document.getElementById('cardList');
+  const resultCountEl = document.getElementById('resultCount');
+  const filterCountEl = document.getElementById('filterCount');
+
+  function meterHtml(score){
+    let ticks = '';
+    for(let i=1;i<=10;i++){ ticks += `<span class="${i<=score?'on':''}"></span>`; }
+    return `<div class="meter"><div class="meter-ticks">${ticks}</div><span class="meter-score">${score}.0</span></div>`;
+  }
+
+  function render(list){
+    currentList = list;
+    tbody.innerHTML = '';
+    cardList.innerHTML = '';
+
+    if(list.length === 0){
+      tbody.innerHTML = `<tr><td colspan="8" style="padding:32px 14px; text-align:center; color:var(--text-faint);">No setups match these filters. Try loosening reward or risk thresholds.</td></tr>`;
+      cardList.innerHTML = `<div class="trade-card" style="text-align:center; color:var(--text-faint);">No setups match these filters. Try loosening reward or risk thresholds.</div>`;
+    }
+
+    list.forEach((t, idx)=>{
+      const pill = t.side==='bull'
+        ? `<span class="side-pill bull"><span class="dot"></span>Bullish</span>`
+        : `<span class="side-pill bear"><span class="dot"></span>Bearish</span>`;
+
+      tbody.innerHTML += `
+        <tr>
+          <td>
+            <div class="ticker-cell">
+              <div>
+                <div class="ticker-sym">${t.sym} <span style="color:var(--text-faint); font-weight:400;">${t.strike}</span></div>
+                <div class="strat-name">${t.strat}</div>
+              </div>
+            </div>
+          </td>
+          <td>${pill}</td>
+          <td class="num">${t.exp} <span style="color:var(--text-faint);">· ${t.dte}d</span></td>
+          <td class="num">${t.pot}%</td>
+          <td class="num val-pos">+${t.ap}%</td>
+          <td class="num">${t.ivr}</td>
+          <td>${meterHtml(t.score)}</td>
+          <td><button class="row-action" data-idx="${idx}">View</button></td>
+        </tr>`;
+
+      cardList.innerHTML += `
+        <div class="trade-card">
+          <div class="trade-card-top">
+            <div>
+              <div class="ticker-sym">${t.sym} <span style="color:var(--text-faint); font-weight:400; font-size:12px;">${t.strike}</span></div>
+              <div class="strat-name">${t.strat}</div>
+            </div>
+            ${pill}
+          </div>
+          ${meterHtml(t.score)}
+          <div class="trade-card-metrics">
+            <div><div class="tcm-label">Prob. of Touch</div><div class="tcm-val">${t.pot}%</div></div>
+            <div><div class="tcm-label">Ann. Profit</div><div class="tcm-val val-pos">+${t.ap}%</div></div>
+            <div><div class="tcm-label">Exp / DTE</div><div class="tcm-val">${t.exp} · ${t.dte}d</div></div>
+          </div>
+          <button class="row-action" data-idx="${idx}" style="width:100%; margin-top:10px;">View details</button>
+        </div>`;
+    });
+
+    resultCountEl.textContent = list.length;
+  }
+
+  function currentOutlook(){
+    const active = document.querySelector('.radio-btn.active');
+    return active ? active.dataset.outlook : 'bull';
+  }
+
+  function computeFiltered(){
+    const outlook = currentOutlook();
+
+    const activeStrats = Array.from(document.querySelectorAll('[data-strat]:checked')).map(cb=>cb.dataset.strat);
+    const wantBuy    = document.querySelector('[data-quality="buy"]').checked;
+    const wantSell   = document.querySelector('[data-quality="sell"]').checked;
+    const wantEma    = document.querySelector('[data-quality="ema"]').checked;
+    const excludeEarnings = document.querySelector('[data-risk="excludeEarnings"]').checked;
+    const etfOnly          = document.querySelector('[data-risk="etfOnly"]').checked;
+    const wantMoS           = document.querySelector('[data-risk="marginOfSafety"]').checked;
+    const wantAnn20  = document.querySelector('[data-reward="ann20"]').checked;
+    const wantDaily10 = document.querySelector('[data-reward="daily10"]').checked;
+    const wantRoc08   = document.querySelector('[data-reward="roc08"]').checked;
+    const dteMin = parseInt(document.getElementById('dteMinInput').value, 10);
+    const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+
+    return trades.filter(t=>{
+      if(t.side !== outlook) return false;
+      if(activeStrats.length && !activeStrats.includes(t.strat)) return false;
+      if(wantBuy && !t.buy) return false;
+      if(wantSell && !t.sell) return false;
+      if(wantEma && !t.ema) return false;
+      if(excludeEarnings && t.earningsSoon) return false;
+      if(etfOnly && !t.isETF) return false;
+      if(wantMoS && !t.marginOfSafety) return false;
+      if(wantAnn20 && t.ap < 20) return false;
+      if(wantDaily10 && t.dailyReturn < 10) return false;
+      if(wantRoc08 && t.roc < 0.8) return false;
+      if(!isNaN(dteMin) && t.dte < dteMin) return false;
+      if(searchTerm && !(t.sym.toLowerCase().includes(searchTerm) || t.strat.toLowerCase().includes(searchTerm))) return false;
+      return true;
+    });
+  }
+
+  function applyFilters(){
+    const filtered = computeFiltered();
+    render(filtered);
+
+    const activeFilterCount = document.querySelectorAll('aside input[type="checkbox"]:checked').length;
+    filterCountEl.textContent = activeFilterCount;
+
+    closePanel();
+    showToast(`Filters applied — ${filtered.length} setup${filtered.length===1?'':'s'} found`);
+    document.querySelector('main').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  function resetFilters(){
+    document.querySelectorAll('.radio-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector('[data-outlook="bull"]').classList.add('active');
+    document.querySelectorAll('aside input[type="checkbox"]:not(:disabled)').forEach(cb=>cb.checked=false);
+    document.querySelector('[data-strat="Short Put"]').checked = true;
+    document.querySelector('[data-quality="buy"]').checked = true;
+    document.querySelector('[data-reward="ann20"]').checked = true;
+    document.getElementById('dteMinInput').value = '';
+    document.getElementById('searchInput').value = '';
+    applyFilters();
+  }
+
+  // mobile filter drawer
+  const panel = document.getElementById('filterPanel');
+  const scrim = document.getElementById('scrim');
+  document.getElementById('filtersToggle').addEventListener('click', ()=>{
+    panel.classList.add('open'); scrim.classList.add('show');
+  });
+  document.getElementById('closeFilters').addEventListener('click', closePanel);
+  scrim.addEventListener('click', closePanel);
+  function closePanel(){ panel.classList.remove('open'); scrim.classList.remove('show'); }
+
+  // outlook toggle (visual only until Apply is pressed)
+  document.querySelectorAll('.radio-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      btn.parentElement.querySelectorAll('.radio-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  document.getElementById('applyFilters').addEventListener('click', applyFilters);
+  document.getElementById('resetFilters').addEventListener('click', resetFilters);
+
+  // search runs immediately without needing Apply, and without the toast/scroll noise
+  document.getElementById('searchInput').addEventListener('input', ()=>{
+    render(computeFiltered());
+  });
+
+  // --- apply feedback toast ---
+  const toastEl = document.getElementById('toast');
+  let toastTimer;
+  function showToast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> toastEl.classList.remove('show'), 2200);
+  }
+
+  // --- trade detail modal ---
+  const modalScrim = document.getElementById('modalScrim');
+  const tradeModal = document.getElementById('tradeModal');
+
+  function openTradeModal(t){
+    tradeModal.innerHTML = `
+      <div class="modal-top">
+        <div>
+          <div class="ticker-sym" style="font-size:19px;">${t.sym} <span style="color:var(--text-faint); font-weight:400; font-size:14px;">${t.strike}</span></div>
+        </div>
+        <button class="modal-close" id="modalCloseBtn">✕</button>
+      </div>
+      <div class="modal-strat">${t.strat} · expires ${t.exp} · ${t.dte} days</div>
+      <div class="modal-metrics">
+        <div><div class="mm-label">Probability of Touch</div><div class="mm-val">${t.pot}%</div></div>
+        <div><div class="mm-label">Annualized Profit</div><div class="mm-val val-pos">+${t.ap}%</div></div>
+        <div><div class="mm-label">Premium</div><div class="mm-val">$${t.premium.toFixed(2)}</div></div>
+        <div><div class="mm-label">Breakeven</div><div class="mm-val">$${t.breakeven.toFixed(2)}</div></div>
+        <div><div class="mm-label">Delta</div><div class="mm-val">${t.delta}</div></div>
+        <div><div class="mm-label">Implied Volatility</div><div class="mm-val">${t.iv}%</div></div>
+        <div><div class="mm-label">IV Rank</div><div class="mm-val">${t.ivr}</div></div>
+        <div><div class="mm-label">Daily Return</div><div class="mm-val">$${t.dailyReturn.toFixed(2)}</div></div>
+        <div><div class="mm-label">Max Loss (est.)</div><div class="mm-val val-neg">$${t.maxLoss.toLocaleString()}</div></div>
+        <div><div class="mm-label">Composite Rating</div><div class="mm-val" style="color:var(--amber);">${t.score}.0 / 10</div></div>
+      </div>
+      <div class="modal-note">Figures are computed from the prior session's EOD close and are for research purposes only — not a recommendation to enter this trade. Verify live pricing before placing an order.</div>
+      <button class="modal-copy-btn" id="modalCopyBtn">Copy trade summary</button>
+    `;
+    modalScrim.classList.add('show');
+    document.getElementById('modalCloseBtn').addEventListener('click', closeTradeModal);
+    document.getElementById('modalCopyBtn').addEventListener('click', ()=>{
+      const summary = `${t.sym} ${t.strat} ${t.strike} · exp ${t.exp} (${t.dte}d) · POT ${t.pot}% · Ann. Profit +${t.ap}% · IV Rank ${t.ivr} · Composite ${t.score}.0`;
+      navigator.clipboard?.writeText(summary).catch(()=>{});
+      showToast('Trade summary copied');
+    });
+  }
+  function closeTradeModal(){ modalScrim.classList.remove('show'); }
+  modalScrim.addEventListener('click', (e)=>{ if(e.target === modalScrim) closeTradeModal(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeTradeModal(); });
+
+  // event delegation — table + card "View" buttons are re-rendered on every filter pass
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.row-action');
+    if(!btn) return;
+    const idx = parseInt(btn.dataset.idx, 10);
+    const trade = currentList[idx];
+    if(trade) openTradeModal(trade);
+  });
+
+  // initial render matches default-checked filters (no toast/scroll on load)
+  render(computeFiltered());
+  filterCountEl.textContent = document.querySelectorAll('aside input[type="checkbox"]:checked').length;
+
+  // register service worker (enables reliable standalone launch from the home screen)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+    });
+  }
+</script>
+
+</body>
+</html>
