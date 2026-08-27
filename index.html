@@ -130,7 +130,7 @@
   /* ---------- LAYOUT ---------- */
   .layout{
     max-width:1320px; margin:0 auto;
-    display:grid; grid-template-columns:280px 1fr;
+    display:grid; grid-template-columns:308px 1fr;
     gap:22px; padding:22px 20px 60px;
     align-items:start;
   }
@@ -195,6 +195,16 @@
     transition:all .12s;
   }
   .radio-btn.active{ border-color:var(--amber); color:var(--amber); background:rgba(240,169,55,0.08); }
+
+  .outlook-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+  .outlook-label{
+    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+    margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border-soft);
+  }
+  .outlook-label.bull{ color:var(--green); }
+  .outlook-label.bear{ color:var(--red); }
+  .outlook-grid .check-row{ padding-left:0; padding-right:0; font-size:12px; }
+  .filter-hint{ font-size:11px; color:var(--text-faint); line-height:1.5; margin-top:10px; }
 
   hr.div{ border:none; border-top:1px solid var(--border-soft); margin:18px 0; }
 
@@ -467,14 +477,26 @@
 
     <div class="filter-group">
       <h3>Outlook</h3>
-      <div class="radio-pair">
-        <div class="radio-btn active" data-outlook="bull">Bullish</div>
-        <div class="radio-btn" data-outlook="bear">Bearish</div>
+      <div class="outlook-grid">
+        <div>
+          <div class="outlook-label bull">Bullish / Positive</div>
+          <label class="check-row"><input type="checkbox" checked data-strat="Short Put"> Short Put</label>
+          <label class="check-row"><input type="checkbox" data-strat="Covered Call"> Covered Call</label>
+          <label class="check-row"><input type="checkbox" data-strat="Bull Put Spread"> Bull Put Spread</label>
+          <label class="check-row disabled"><input type="checkbox" disabled data-strat="Long Call"> Long Call</label>
+          <label class="check-row"><input type="checkbox" data-pcoi="bull"> P/C OI &lt; 0.7</label>
+          <label class="check-row"><input type="checkbox" data-pcvol="bull"> P/C Volume &lt; 0.7</label>
+        </div>
+        <div>
+          <div class="outlook-label bear">Bearish / Negative</div>
+          <label class="check-row"><input type="checkbox" data-strat="Short Call"> Short Call</label>
+          <label class="check-row"><input type="checkbox" data-strat="Bear Call Spread"> Bear Call Spread</label>
+          <label class="check-row disabled"><input type="checkbox" disabled data-strat="Long Put"> Long Put</label>
+          <label class="check-row"><input type="checkbox" data-pcoi="bear"> P/C OI &gt; 1.4</label>
+          <label class="check-row"><input type="checkbox" data-pcvol="bear"> P/C Volume &gt; 1.4</label>
+        </div>
       </div>
-      <label class="check-row"><input type="checkbox" checked data-strat="Short Put"> Short Put</label>
-      <label class="check-row"><input type="checkbox" data-strat="Covered Call"> Covered Call</label>
-      <label class="check-row"><input type="checkbox" data-strat="Bull Put Spread"> Bull Put Spread</label>
-      <label class="check-row disabled"><input type="checkbox" disabled data-strat="Long Call"> Long Call</label>
+      <p class="filter-hint">Check any strategy from either side — results combine bullish and bearish setups that match.</p>
     </div>
 
     <hr class="div">
@@ -553,7 +575,7 @@
     </div>
 
     <div class="apply-bar">
-      <button class="reset-btn" id="resetFilters">Reset</button>
+      <button class="reset-btn" id="resetFilters">Reset to defaults</button>
       <button class="apply-btn" id="applyFilters">Apply filters</button>
     </div>
   </aside>
@@ -609,14 +631,15 @@
 <script>
   // Mock EOD dataset — fields line up with the filter controls above.
   const trades = [
-    { sym:"AAPL", strat:"Short Put",       side:"bull", isETF:false, strike:"$225 P",   exp:"Sep 19", dte:23, pot:18, ap:24.6, ivr:41, dailyReturn:12.30, roc:1.10, score:8, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:-0.22, iv:34.2, premium:2.15, breakeven:222.85, maxLoss:22285 },
-    { sym:"MSFT", strat:"Bull Put Spread", side:"bull", isETF:false, strike:"$480/470", exp:"Oct 17", dte:51, pot:14, ap:19.2, ivr:33, dailyReturn:7.10,  roc:0.62, score:7, buy:true,  sell:false, ema:false, earningsSoon:true,  marginOfSafety:true,  delta:-0.18, iv:28.7, premium:3.40, breakeven:476.60, maxLoss:660    },
-    { sym:"NVDA", strat:"Covered Call",    side:"bull", isETF:false, strike:"$185 C",   exp:"Sep 19", dte:23, pot:29, ap:31.4, ivr:58, dailyReturn:18.40, roc:1.35, score:6, buy:false, sell:true,  ema:false, earningsSoon:true,  marginOfSafety:false, delta:0.31,  iv:51.5, premium:4.80, breakeven:180.20, maxLoss:18020  },
-    { sym:"XOM",  strat:"Short Put",       side:"bull", isETF:false, strike:"$108 P",   exp:"Sep 5",  dte:9,  pot:11, ap:21.8, ivr:27, dailyReturn:9.80,  roc:0.95, score:9, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:-0.15, iv:22.4, premium:1.05, breakeven:106.95, maxLoss:10695  },
-    { sym:"TSLA", strat:"Bear Call Spread",side:"bear", isETF:false, strike:"$430/440", exp:"Sep 19", dte:23, pot:22, ap:26.1, ivr:64, dailyReturn:14.20, roc:1.05, score:6, buy:false, sell:true,  ema:false, earningsSoon:true,  marginOfSafety:false, delta:0.24,  iv:59.8, premium:3.90, breakeven:433.90, maxLoss:610    },
-    { sym:"JPM",  strat:"Short Put",       side:"bull", isETF:false, strike:"$285 P",   exp:"Oct 17", dte:51, pot:16, ap:17.5, ivr:24, dailyReturn:6.40,  roc:0.55, score:8, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:-0.19, iv:20.1, premium:2.70, breakeven:282.30, maxLoss:28230  },
-    { sym:"SPY",  strat:"Covered Call",    side:"bull", isETF:true,  strike:"$580 C",   exp:"Sep 19", dte:23, pot:19, ap:15.9, ivr:18, dailyReturn:5.20,  roc:0.48, score:7, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:0.27,  iv:15.6, premium:3.10, breakeven:576.90, maxLoss:57690  },
-    { sym:"META", strat:"Bull Put Spread", side:"bull", isETF:false, strike:"$700/685", exp:"Sep 5",  dte:9,  pot:24, ap:29.7, ivr:52, dailyReturn:16.90, roc:1.22, score:5, buy:false, sell:false, ema:false, earningsSoon:true,  marginOfSafety:false, delta:-0.29, iv:47.3, premium:5.60, breakeven:694.40, maxLoss:940    },
+    { sym:"AAPL", strat:"Short Put",       side:"bull", isETF:false, strike:"$225 P",   exp:"Sep 19", dte:23, pot:18, ap:24.6, ivr:41, dailyReturn:12.30, roc:1.10, score:8, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:-0.22, iv:34.2, premium:2.15, breakeven:222.85, maxLoss:22285, pcOI:0.62, pcVol:0.58 },
+    { sym:"MSFT", strat:"Bull Put Spread", side:"bull", isETF:false, strike:"$480/470", exp:"Oct 17", dte:51, pot:14, ap:19.2, ivr:33, dailyReturn:7.10,  roc:0.62, score:7, buy:true,  sell:false, ema:false, earningsSoon:true,  marginOfSafety:true,  delta:-0.18, iv:28.7, premium:3.40, breakeven:476.60, maxLoss:660,   pcOI:0.71, pcVol:0.65 },
+    { sym:"NVDA", strat:"Covered Call",    side:"bull", isETF:false, strike:"$185 C",   exp:"Sep 19", dte:23, pot:29, ap:31.4, ivr:58, dailyReturn:18.40, roc:1.35, score:6, buy:false, sell:true,  ema:false, earningsSoon:true,  marginOfSafety:false, delta:0.31,  iv:51.5, premium:4.80, breakeven:180.20, maxLoss:18020, pcOI:0.85, pcVol:0.77 },
+    { sym:"XOM",  strat:"Short Put",       side:"bull", isETF:false, strike:"$108 P",   exp:"Sep 5",  dte:9,  pot:11, ap:21.8, ivr:27, dailyReturn:9.80,  roc:0.95, score:9, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:-0.15, iv:22.4, premium:1.05, breakeven:106.95, maxLoss:10695, pcOI:0.55, pcVol:0.50 },
+    { sym:"JPM",  strat:"Short Put",       side:"bull", isETF:false, strike:"$285 P",   exp:"Oct 17", dte:51, pot:16, ap:17.5, ivr:24, dailyReturn:6.40,  roc:0.55, score:8, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:-0.19, iv:20.1, premium:2.70, breakeven:282.30, maxLoss:28230, pcOI:0.68, pcVol:0.60 },
+    { sym:"SPY",  strat:"Covered Call",    side:"bull", isETF:true,  strike:"$580 C",   exp:"Sep 19", dte:23, pot:19, ap:15.9, ivr:18, dailyReturn:5.20,  roc:0.48, score:7, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:0.27,  iv:15.6, premium:3.10, breakeven:576.90, maxLoss:57690, pcOI:0.90, pcVol:0.82 },
+    { sym:"META", strat:"Bull Put Spread", side:"bull", isETF:false, strike:"$700/685", exp:"Sep 5",  dte:9,  pot:24, ap:29.7, ivr:52, dailyReturn:16.90, roc:1.22, score:5, buy:false, sell:false, ema:false, earningsSoon:true,  marginOfSafety:false, delta:-0.29, iv:47.3, premium:5.60, breakeven:694.40, maxLoss:940,   pcOI:1.48, pcVol:1.40 },
+    { sym:"TSLA", strat:"Bear Call Spread",side:"bear", isETF:false, strike:"$430/440", exp:"Sep 19", dte:23, pot:22, ap:26.1, ivr:64, dailyReturn:14.20, roc:1.05, score:6, buy:false, sell:true,  ema:false, earningsSoon:true,  marginOfSafety:false, delta:0.24,  iv:59.8, premium:3.90, breakeven:433.90, maxLoss:610,   pcOI:1.62, pcVol:1.55 },
+    { sym:"AMD",  strat:"Short Call",      side:"bear", isETF:false, strike:"$165 C",   exp:"Sep 19", dte:23, pot:20, ap:27.3, ivr:55, dailyReturn:13.10, roc:1.02, score:6, buy:false, sell:true,  ema:false, earningsSoon:false, marginOfSafety:false, delta:0.26,  iv:49.0, premium:3.35, breakeven:168.35, maxLoss:16835, pcOI:1.71, pcVol:1.65 },
   ];
 
   let currentList = [];
@@ -688,15 +711,12 @@
     resultCountEl.textContent = list.length;
   }
 
-  function currentOutlook(){
-    const active = document.querySelector('.radio-btn.active');
-    return active ? active.dataset.outlook : 'bull';
-  }
-
   function computeFiltered(){
-    const outlook = currentOutlook();
-
     const activeStrats = Array.from(document.querySelectorAll('[data-strat]:checked')).map(cb=>cb.dataset.strat);
+
+    const pcoiChecks = Array.from(document.querySelectorAll('[data-pcoi]:checked')).map(cb=>cb.dataset.pcoi);
+    const pcvolChecks = Array.from(document.querySelectorAll('[data-pcvol]:checked')).map(cb=>cb.dataset.pcvol);
+
     const wantBuy    = document.querySelector('[data-quality="buy"]').checked;
     const wantSell   = document.querySelector('[data-quality="sell"]').checked;
     const wantEma    = document.querySelector('[data-quality="ema"]').checked;
@@ -710,8 +730,21 @@
     const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
 
     return trades.filter(t=>{
-      if(t.side !== outlook) return false;
+      // Strategy: checking boxes from EITHER outlook panel is a union (OR) — leaving all
+      // unchecked means "don't restrict by strategy" rather than "match nothing."
       if(activeStrats.length && !activeStrats.includes(t.strat)) return false;
+
+      // Put/Call OI and Volume ratio: each checked threshold is an alternative signal to
+      // scan for, so a trade passes if it satisfies ANY checked threshold.
+      if(pcoiChecks.length){
+        const passesOI = pcoiChecks.some(side => side==='bull' ? t.pcOI < 0.7 : t.pcOI > 1.4);
+        if(!passesOI) return false;
+      }
+      if(pcvolChecks.length){
+        const passesVol = pcvolChecks.some(side => side==='bull' ? t.pcVol < 0.7 : t.pcVol > 1.4);
+        if(!passesVol) return false;
+      }
+
       if(wantBuy && !t.buy) return false;
       if(wantSell && !t.sell) return false;
       if(wantEma && !t.ema) return false;
@@ -739,13 +772,12 @@
     document.querySelector('main').scrollIntoView({ behavior:'smooth', block:'start' });
   }
 
+  // The exact state Apply/Reset return to — edit this if your "sensible defaults" change.
+  const DEFAULT_CHECKED = ['[data-strat="Short Put"]', '[data-quality="buy"]', '[data-reward="ann20"]'];
+
   function resetFilters(){
-    document.querySelectorAll('.radio-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelector('[data-outlook="bull"]').classList.add('active');
     document.querySelectorAll('aside input[type="checkbox"]:not(:disabled)').forEach(cb=>cb.checked=false);
-    document.querySelector('[data-strat="Short Put"]').checked = true;
-    document.querySelector('[data-quality="buy"]').checked = true;
-    document.querySelector('[data-reward="ann20"]').checked = true;
+    DEFAULT_CHECKED.forEach(sel => { document.querySelector(sel).checked = true; });
     document.getElementById('dteMinInput').value = '';
     document.getElementById('searchInput').value = '';
     applyFilters();
@@ -760,14 +792,6 @@
   document.getElementById('closeFilters').addEventListener('click', closePanel);
   scrim.addEventListener('click', closePanel);
   function closePanel(){ panel.classList.remove('open'); scrim.classList.remove('show'); }
-
-  // outlook toggle (visual only until Apply is pressed)
-  document.querySelectorAll('.radio-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      btn.parentElement.querySelectorAll('.radio-btn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  });
 
   document.getElementById('applyFilters').addEventListener('click', applyFilters);
   document.getElementById('resetFilters').addEventListener('click', resetFilters);
@@ -809,6 +833,8 @@
         <div><div class="mm-label">Implied Volatility</div><div class="mm-val">${t.iv}%</div></div>
         <div><div class="mm-label">IV Rank</div><div class="mm-val">${t.ivr}</div></div>
         <div><div class="mm-label">Daily Return</div><div class="mm-val">$${t.dailyReturn.toFixed(2)}</div></div>
+        <div><div class="mm-label">Put/Call OI</div><div class="mm-val">${t.pcOI.toFixed(2)}</div></div>
+        <div><div class="mm-label">Put/Call Volume</div><div class="mm-val">${t.pcVol.toFixed(2)}</div></div>
         <div><div class="mm-label">Max Loss (est.)</div><div class="mm-val val-neg">$${t.maxLoss.toLocaleString()}</div></div>
         <div><div class="mm-label">Composite Rating</div><div class="mm-val" style="color:var(--amber);">${t.score}.0 / 10</div></div>
       </div>
