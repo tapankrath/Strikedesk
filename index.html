@@ -5,11 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>StrikeDesk — Ready-Made Option Trades</title>
 
-<!-- Add to Home Screen support (iOS + Android) -->
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0E1116">
+<meta name="theme-color" content="#F6F7F9">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="StrikeDesk">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icons/favicon.png">
@@ -18,21 +17,23 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0E1116;
-    --panel:#151A21;
-    --panel-2:#1B2129;
-    --border:#262E39;
-    --border-soft:#1E252E;
-    --text:#E7E9EC;
-    --text-dim:#8A93A3;
-    --text-faint:#5B6472;
-    --amber:#F0A937;
-    --amber-dim:#7A5A22;
-    --green:#33C98A;
-    --green-dim:#12362A;
-    --red:#FF6B6B;
-    --red-dim:#3A1E20;
-    --radius:8px;
+    --bg:#F6F7F9;
+    --surface:#FFFFFF;
+    --surface-2:#FAFBFC;
+    --border:#E4E7EC;
+    --border-strong:#D0D5DD;
+    --text:#131722;
+    --text-dim:#5B6472;
+    --text-faint:#98A2B3;
+    --amber:#B7791F;
+    --amber-strong:#8A5A14;
+    --amber-soft:#FFF6E5;
+    --amber-border:#F0D9A8;
+    --green:#0F9D58;
+    --green-soft:#E7F7EF;
+    --red:#D92D20;
+    --red-soft:#FDECEB;
+    --radius:10px;
     --sans: 'IBM Plex Sans', -apple-system, sans-serif;
     --mono: 'IBM Plex Mono', 'SF Mono', monospace;
   }
@@ -43,391 +44,348 @@
     font-family:var(--sans);
     -webkit-font-smoothing:antialiased;
     min-height:100vh;
-    padding-top:env(safe-area-inset-top);
-    padding-bottom:env(safe-area-inset-bottom);
   }
-  ::selection{ background:var(--amber); color:#0E1116; }
+  ::selection{ background:var(--amber-soft); color:var(--amber-strong); }
   button{ font-family:inherit; cursor:pointer; }
-  input{ font-family:inherit; }
-
+  input,select{ font-family:inherit; }
   .num{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
 
   /* ---------- HEADER ---------- */
   header{
     position:sticky; top:0; z-index:40;
-    background:rgba(14,17,22,0.92);
+    background:rgba(255,255,255,0.92);
     backdrop-filter:blur(10px);
     border-bottom:1px solid var(--border);
   }
   .header-inner{
-    max-width:1320px; margin:0 auto;
-    padding:14px 20px;
-    display:flex; align-items:center; gap:18px;
+    max-width:1080px; margin:0 auto;
+    padding:14px 18px;
+    display:flex; align-items:center; gap:14px;
     flex-wrap:wrap;
   }
   .brand{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
   .brand-mark{
-    width:30px; height:30px; border-radius:6px;
-    background:linear-gradient(155deg, var(--amber), #B97A1D);
+    width:30px; height:30px; border-radius:7px;
+    background:linear-gradient(155deg, var(--amber), var(--amber-strong));
     display:flex; align-items:center; justify-content:center;
-    font-family:var(--mono); font-weight:700; color:#0E1116; font-size:14px;
+    font-family:var(--mono); font-weight:700; color:#fff; font-size:13px;
   }
-  .brand-name{ font-weight:600; font-size:15px; letter-spacing:0.01em; }
-  .brand-sub{ font-size:11px; color:var(--text-dim); font-family:var(--mono); letter-spacing:0.02em;}
+  .brand-name{ font-weight:700; font-size:15px; letter-spacing:-0.01em; color:var(--text); }
+  .brand-sub{ font-size:10.5px; color:var(--text-faint); font-family:var(--mono); letter-spacing:0.03em;}
 
   .data-status{
-    display:flex; align-items:center; gap:7px;
-    font-family:var(--mono); font-size:11.5px; color:var(--text-dim);
+    display:flex; align-items:center; gap:6px;
+    font-family:var(--mono); font-size:11px; color:var(--text-dim);
     padding:5px 10px; border:1px solid var(--border); border-radius:20px;
-    flex-shrink:0;
+    background:var(--surface-2); flex-shrink:0;
   }
-  .pulse-dot{
-    width:6px; height:6px; border-radius:50%; background:var(--green);
-    box-shadow:0 0 0 0 rgba(51,201,138,0.6);
-    animation:pulse 2.2s infinite;
-  }
-  @keyframes pulse{
-    0%{ box-shadow:0 0 0 0 rgba(51,201,138,0.45); }
-    70%{ box-shadow:0 0 0 6px rgba(51,201,138,0); }
-    100%{ box-shadow:0 0 0 0 rgba(51,201,138,0); }
-  }
+  .pulse-dot{ width:6px; height:6px; border-radius:50%; background:var(--green); }
 
   .search-wrap{
-    flex:1 1 220px; min-width:160px;
+    flex:1 1 200px; min-width:150px;
     display:flex; align-items:center; gap:8px;
-    background:var(--panel-2); border:1px solid var(--border);
-    border-radius:7px; padding:8px 12px;
+    background:var(--surface-2); border:1px solid var(--border);
+    border-radius:8px; padding:8px 12px;
   }
-  .search-wrap svg{ flex-shrink:0; opacity:0.5; }
-  .search-wrap input{
-    background:transparent; border:none; outline:none;
-    color:var(--text); font-size:13.5px; width:100%;
-  }
+  .search-wrap svg{ flex-shrink:0; opacity:0.45; }
+  .search-wrap input{ background:transparent; border:none; outline:none; color:var(--text); font-size:13.5px; width:100%; }
   .search-wrap input::placeholder{ color:var(--text-faint); }
 
   .export-btn{
     display:flex; align-items:center; gap:6px;
-    background:var(--panel-2); border:1px solid var(--border);
-    color:var(--text); padding:9px 14px; border-radius:7px;
-    font-size:13px; font-weight:500; flex-shrink:0;
+    background:var(--surface); border:1px solid var(--border-strong);
+    color:var(--text); padding:9px 14px; border-radius:8px;
+    font-size:12.5px; font-weight:600; flex-shrink:0;
     transition:border-color .15s, background .15s;
   }
-  .export-btn:hover{ border-color:var(--amber-dim); background:#1F2530; }
+  .export-btn:hover{ border-color:var(--amber); background:var(--amber-soft); }
   .export-btn:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
 
-  .filters-toggle{
-    display:none;
-    align-items:center; gap:7px;
-    background:var(--panel-2); border:1px solid var(--border);
-    color:var(--text); padding:9px 14px; border-radius:7px;
-    font-size:13px; font-weight:500;
-  }
-  .filters-toggle .count{
-    background:var(--amber); color:#0E1116; font-family:var(--mono);
-    font-size:11px; font-weight:700; padding:1px 6px; border-radius:10px;
-  }
-
   /* ---------- LAYOUT ---------- */
-  .layout{
-    max-width:1320px; margin:0 auto;
-    display:grid; grid-template-columns:308px 1fr;
-    gap:22px; padding:22px 20px 60px;
-    align-items:start;
+  .layout{ max-width:1080px; margin:0 auto; padding:20px 18px 100px; }
+
+  .section-label{
+    font-size:10.5px; font-weight:700; letter-spacing:0.08em; color:var(--text-faint);
+    text-transform:uppercase; margin-bottom:10px;
   }
 
-  /* ---------- SIDEBAR ---------- */
-  aside{
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:var(--radius);
-    padding:18px;
-    position:sticky; top:78px;
-    max-height:calc(100vh - 96px);
-    overflow-y:auto;
+  /* ---------- FILTER TOOLBAR ---------- */
+  .filter-card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:16px;
+    box-shadow:0 1px 2px rgba(16,24,40,0.03);
+    margin-bottom:14px;
   }
-  aside::-webkit-scrollbar{ width:6px; }
-  aside::-webkit-scrollbar-thumb{ background:var(--border); border-radius:3px; }
 
-  .filter-group{ margin-bottom:20px; }
-  .filter-group:last-child{ margin-bottom:0; }
-  .filter-group h3{
-    font-size:10.5px; font-weight:700; letter-spacing:0.08em;
-    color:var(--text-faint); text-transform:uppercase;
-    margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;
+  .outlook-block{
+    border:1px solid var(--border); border-radius:9px; background:var(--surface-2);
+    margin-bottom:12px; overflow:hidden;
   }
-  .filter-group h3 .active-badge{
-    color:var(--amber); font-family:var(--mono); font-size:10px;
+  .outlook-header{
+    padding:12px 14px; font-weight:600; font-size:13px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--border);
   }
+  .outlook-body{
+    display:grid; grid-template-columns:1fr 1fr; gap:0;
+  }
+  .outlook-col{ padding:12px 14px; }
+  .outlook-col + .outlook-col{ border-left:1px solid var(--border); }
+  .outlook-col-label{
+    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
+    margin-bottom:8px;
+  }
+  .outlook-col-label.bull{ color:var(--green); }
+  .outlook-col-label.bear{ color:var(--red); }
+  .filter-hint{ font-size:11px; color:var(--text-faint); line-height:1.5; padding:0 14px 12px; }
+
+  details.filter-section{
+    border:1px solid var(--border); border-radius:9px; background:var(--surface-2);
+    margin-bottom:0;
+  }
+  details.filter-section > summary{
+    cursor:pointer; padding:12px 14px; font-weight:600; font-size:13px;
+    display:flex; align-items:center; justify-content:space-between;
+    list-style:none; user-select:none;
+  }
+  details.filter-section > summary::-webkit-details-marker{ display:none; }
+  details.filter-section > summary::after{
+    content:"›"; font-size:18px; color:var(--text-faint); transform:rotate(90deg);
+    transition:transform .15s; line-height:1;
+  }
+  details.filter-section[open] > summary::after{ transform:rotate(-90deg); }
+  details.filter-section[open] > summary{ border-bottom:1px solid var(--border); }
+  .filter-section-body{ padding:12px 14px; }
+  .summary-count{
+    font-family:var(--mono); font-size:10.5px; font-weight:700; color:var(--amber-strong);
+    background:var(--amber-soft); border:1px solid var(--amber-border);
+    padding:1px 7px; border-radius:10px; margin-left:8px;
+  }
+
+  .filter-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; margin-bottom:10px; }
 
   .check-row{
     display:flex; align-items:center; gap:9px;
-    padding:6px 4px; border-radius:5px; cursor:pointer;
+    padding:7px 4px; border-radius:6px; cursor:pointer;
     font-size:13px; color:var(--text);
     transition:background .12s;
   }
-  .check-row:hover{ background:var(--panel-2); }
+  .check-row:hover{ background:var(--surface); }
   .check-row input[type="checkbox"]{
     appearance:none; -webkit-appearance:none;
-    width:15px; height:15px; border-radius:4px;
-    border:1.5px solid var(--border);
-    background:var(--panel-2);
+    width:16px; height:16px; border-radius:5px;
+    border:1.5px solid var(--border-strong);
+    background:var(--surface);
     flex-shrink:0; position:relative; cursor:pointer;
     transition:border-color .12s, background .12s;
   }
-  .check-row input[type="checkbox"]:checked{
-    background:var(--amber); border-color:var(--amber);
-  }
+  .check-row input[type="checkbox"]:checked{ background:var(--amber); border-color:var(--amber); }
   .check-row input[type="checkbox"]:checked::after{
-    content:""; position:absolute; left:4px; top:1px;
-    width:4px; height:8px;
-    border:solid #0E1116; border-width:0 2px 2px 0;
+    content:""; position:absolute; left:4.5px; top:1.5px;
+    width:4px; height:8px; border:solid #fff; border-width:0 2px 2px 0;
     transform:rotate(45deg);
   }
   .check-row input[type="checkbox"]:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
-  .check-row .label-sub{ color:var(--text-faint); font-size:11.5px; margin-left:2px; }
   .check-row.disabled{ opacity:0.4; pointer-events:none; }
 
-  .radio-pair{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
-  .radio-btn{
-    text-align:center; padding:9px 6px; border-radius:6px;
-    border:1px solid var(--border); background:var(--panel-2);
-    font-size:12px; color:var(--text-dim); font-weight:500;
-    transition:all .12s;
-  }
-  .radio-btn.active{ border-color:var(--amber); color:var(--amber); background:rgba(240,169,55,0.08); }
-
-  .outlook-grid{ display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
-  .outlook-label{
-    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
-    margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border-soft);
-  }
-  .outlook-label.bull{ color:var(--green); }
-  .outlook-label.bear{ color:var(--red); }
-  .outlook-grid .check-row{ padding-left:0; padding-right:0; font-size:12px; }
-  .filter-hint{ font-size:11px; color:var(--text-faint); line-height:1.5; margin-top:10px; }
-
-  hr.div{ border:none; border-top:1px solid var(--border-soft); margin:18px 0; }
-
-  .expiry-row{ display:flex; gap:8px; margin-bottom:8px; }
+  .expiry-row{ display:flex; gap:8px; }
   .expiry-row select, .expiry-row input{
-    flex:1; background:var(--panel-2); border:1px solid var(--border);
-    color:var(--text); font-size:12.5px; padding:8px 9px; border-radius:6px;
+    flex:1; background:var(--surface); border:1px solid var(--border-strong);
+    color:var(--text); font-size:12.5px; padding:9px 10px; border-radius:7px;
   }
 
-  /* metrics chip grid */
-  .metric-grid{ display:grid; grid-template-columns:1fr 1fr; gap:2px 10px; }
+  .metric-grid{ display:grid; grid-template-columns:1fr 1fr; gap:2px 14px; }
 
-  /* AI card */
-  .ai-card{
-    margin-top:18px; padding:14px;
-    background:linear-gradient(160deg, #1C1508, var(--panel-2));
-    border:1px solid var(--amber-dim);
-    border-radius:8px;
-  }
-  .ai-card h4{
-    font-size:12px; font-weight:600; color:var(--amber);
-    display:flex; align-items:center; gap:6px; margin-bottom:9px;
-  }
-  .ai-card select{
-    width:100%; background:var(--panel); border:1px solid var(--border);
-    color:var(--text); font-size:12.5px; padding:9px 10px; border-radius:6px;
-    margin-bottom:9px;
-  }
-  .ai-card p{ font-size:11.5px; color:var(--text-dim); line-height:1.5; margin-bottom:10px; }
-  .ai-card p a{ color:var(--amber); text-decoration:none; }
-  .ai-card button{
-    width:100%; background:var(--amber); color:#0E1116;
-    border:none; padding:10px; border-radius:6px;
-    font-weight:600; font-size:12.5px;
-    transition:filter .12s;
-  }
-  .ai-card button:hover{ filter:brightness(1.08); }
-  .ai-card button:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+  .sections-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 
-  /* sticky apply/reset bar */
+  /* apply/reset bar */
   .apply-bar{
-    position:sticky; bottom:-18px;
-    margin:18px -18px -18px;
-    padding:12px 18px;
-    background:var(--panel);
-    border-top:1px solid var(--border);
-    display:flex; gap:8px; align-items:center;
-    z-index:5;
+    display:flex; gap:10px; align-items:center;
+    margin-top:14px; padding-top:14px; border-top:1px solid var(--border);
   }
   .apply-btn{
-    flex:1; background:var(--amber); color:#0E1116; border:none;
-    padding:11px; border-radius:7px; font-weight:700; font-size:13px;
+    flex:1; background:var(--amber); color:#fff; border:none;
+    padding:12px; border-radius:8px; font-weight:700; font-size:13.5px;
     transition:filter .12s;
   }
   .apply-btn:hover{ filter:brightness(1.08); }
-  .apply-btn:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+  .apply-btn:focus-visible{ outline:2px solid var(--amber-strong); outline-offset:2px; }
   .reset-btn{
-    background:transparent; border:1px solid var(--border); color:var(--text-dim);
-    padding:11px 14px; border-radius:7px; font-size:13px; font-weight:500;
+    background:var(--surface); border:1px solid var(--border-strong); color:var(--text-dim);
+    padding:12px 16px; border-radius:8px; font-size:13px; font-weight:600;
     transition:border-color .12s, color .12s;
   }
   .reset-btn:hover{ border-color:var(--text-dim); color:var(--text); }
+  .active-count{ font-family:var(--mono); font-size:11.5px; color:var(--text-faint); white-space:nowrap; }
 
-  /* trade detail modal */
-  .modal-scrim{
-    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
-    z-index:80; align-items:center; justify-content:center; padding:20px;
+  /* ---------- AI CARD ---------- */
+  .ai-card{
+    background:var(--amber-soft); border:1px solid var(--amber-border);
+    border-radius:var(--radius); padding:16px; margin-bottom:14px;
   }
-  .modal-scrim.show{ display:flex; }
-  .trade-modal{
-    width:100%; max-width:440px; background:var(--panel);
-    border:1px solid var(--border); border-radius:12px;
-    padding:22px; max-height:86vh; overflow-y:auto;
+  .ai-card h4{
+    font-size:12.5px; font-weight:700; color:var(--amber-strong);
+    display:flex; align-items:center; gap:6px; margin-bottom:10px;
   }
-  .modal-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px; }
-  .modal-close{
-    background:transparent; border:1px solid var(--border); color:var(--text-dim);
-    width:28px; height:28px; border-radius:6px; font-size:15px; line-height:1;
-    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  .ai-card select{
+    width:100%; background:var(--surface); border:1px solid var(--amber-border);
+    color:var(--text); font-size:12.5px; padding:9px 10px; border-radius:7px;
+    margin-bottom:9px;
   }
-  .modal-close:hover{ color:var(--text); border-color:var(--text-dim); }
-  .modal-strat{ font-size:12.5px; color:var(--text-dim); margin-bottom:16px; }
-  .modal-metrics{
-    display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;
-    padding:14px 0; border-top:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);
-    margin-bottom:16px;
+  .ai-card p{ font-size:11.5px; color:var(--text-dim); line-height:1.55; margin-bottom:11px; }
+  .ai-card p a{ color:var(--amber-strong); text-decoration:none; font-weight:600; }
+  .ai-card button{
+    width:100%; background:var(--amber); color:#fff;
+    border:none; padding:11px; border-radius:7px;
+    font-weight:700; font-size:12.5px;
   }
-  .mm-label{ font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; }
-  .mm-val{ font-family:var(--mono); font-size:14.5px; font-weight:600; }
-  .modal-note{ font-size:12px; color:var(--text-dim); line-height:1.55; margin-bottom:16px; }
-  .modal-copy-btn{
-    width:100%; background:var(--amber); color:#0E1116; border:none;
-    padding:11px; border-radius:7px; font-weight:700; font-size:13px;
-  }
+  .ai-card button:hover{ filter:brightness(1.08); }
 
-  /* apply feedback toast */
-  .toast{
-    position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
-    background:var(--panel-2); border:1px solid var(--amber-dim); color:var(--amber);
-    font-family:var(--mono); font-size:12.5px; font-weight:600;
-    padding:10px 18px; border-radius:20px; z-index:90;
-    opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
-  }
-  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
-
-  /* ---------- MAIN ---------- */
-  main{ min-width:0; }
+  /* ---------- RESULTS ---------- */
   .results-bar{
     display:flex; align-items:center; justify-content:space-between;
-    margin-bottom:14px; gap:12px; flex-wrap:wrap;
+    margin-bottom:12px; gap:12px; flex-wrap:wrap;
   }
   .results-count{ font-size:13.5px; color:var(--text-dim); }
   .results-count strong{ color:var(--text); font-family:var(--mono); }
   .sort-wrap{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-dim); }
   .sort-wrap select{
-    background:var(--panel-2); border:1px solid var(--border);
-    color:var(--text); padding:7px 10px; border-radius:6px; font-size:12.5px;
+    background:var(--surface); border:1px solid var(--border-strong);
+    color:var(--text); padding:7px 10px; border-radius:7px; font-size:12.5px;
   }
 
-  /* table (desktop) */
   .table-wrap{
-    background:var(--panel); border:1px solid var(--border);
+    background:var(--surface); border:1px solid var(--border);
     border-radius:var(--radius); overflow:hidden;
+    box-shadow:0 1px 2px rgba(16,24,40,0.03);
   }
   table{ width:100%; border-collapse:collapse; }
   thead th{
     text-align:left; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase;
-    color:var(--text-faint); font-weight:600; padding:11px 14px;
+    color:var(--text-faint); font-weight:700; padding:11px 14px;
     border-bottom:1px solid var(--border); white-space:nowrap;
-    background:var(--panel-2);
+    background:var(--surface-2);
   }
-  tbody tr{ border-bottom:1px solid var(--border-soft); transition:background .12s; }
+  tbody tr{ border-bottom:1px solid var(--border); transition:background .12s; }
   tbody tr:last-child{ border-bottom:none; }
-  tbody tr:hover{ background:var(--panel-2); }
+  tbody tr:hover{ background:var(--surface-2); }
   tbody td{ padding:13px 14px; font-size:13px; vertical-align:middle; white-space:nowrap; }
 
-  .ticker-cell{ display:flex; align-items:center; gap:9px; }
   .ticker-sym{ font-weight:700; font-family:var(--mono); font-size:13.5px; }
   .strat-name{ font-size:11.5px; color:var(--text-dim); }
 
   .side-pill{
     display:inline-flex; align-items:center; gap:5px;
-    padding:3px 8px; border-radius:20px; font-size:11px; font-weight:600;
+    padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700;
   }
-  .side-pill.bull{ background:var(--green-dim); color:var(--green); }
-  .side-pill.bear{ background:var(--red-dim); color:var(--red); }
-  .side-pill.dot{ width:5px; height:5px; border-radius:50%; background:currentColor; }
+  .side-pill.bull{ background:var(--green-soft); color:var(--green); }
+  .side-pill.bear{ background:var(--red-soft); color:var(--red); }
+  .side-pill .dot{ width:5px; height:5px; border-radius:50%; background:currentColor; }
 
   .val-pos{ color:var(--green); }
   .val-neg{ color:var(--red); }
 
-  /* composite meter — signature element */
   .meter{ display:flex; align-items:center; gap:8px; }
   .meter-ticks{ display:flex; gap:2px; }
-  .meter-ticks span{
-    width:4px; height:14px; border-radius:1px; background:var(--border);
-  }
+  .meter-ticks span{ width:4px; height:14px; border-radius:1px; background:var(--border-strong); }
   .meter-ticks span.on{ background:var(--amber); }
-  .meter-score{ font-family:var(--mono); font-size:12.5px; font-weight:600; color:var(--amber); min-width:26px; }
+  .meter-score{ font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--amber-strong); min-width:26px; }
 
   .row-action{
-    background:transparent; border:1px solid var(--border);
-    color:var(--text-dim); padding:6px 12px; border-radius:6px; font-size:11.5px;
-    font-weight:500; transition:all .12s;
+    background:var(--surface); border:1px solid var(--border-strong);
+    color:var(--text-dim); padding:7px 13px; border-radius:7px; font-size:11.5px;
+    font-weight:600; transition:all .12s;
   }
-  .row-action:hover{ border-color:var(--amber); color:var(--amber); }
+  .row-action:hover{ border-color:var(--amber); color:var(--amber-strong); background:var(--amber-soft); }
 
-  /* mobile cards (hidden on desktop) */
   .card-list{ display:none; flex-direction:column; gap:10px; }
   .trade-card{
-    background:var(--panel); border:1px solid var(--border);
+    background:var(--surface); border:1px solid var(--border);
     border-radius:var(--radius); padding:14px;
+    box-shadow:0 1px 2px rgba(16,24,40,0.03);
   }
   .trade-card-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
   .trade-card-metrics{
     display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;
-    padding-top:10px; border-top:1px solid var(--border-soft);
+    padding-top:10px; border-top:1px solid var(--border);
   }
   .tcm-label{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:2px; }
-  .tcm-val{ font-family:var(--mono); font-size:13px; font-weight:600; }
+  .tcm-val{ font-family:var(--mono); font-size:13px; font-weight:700; }
 
   footer{
-    max-width:1320px; margin:0 auto; padding:20px 20px 40px;
+    max-width:1080px; margin:0 auto; padding:20px 18px 30px;
     font-size:11px; color:var(--text-faint); line-height:1.6;
-    border-top:1px solid var(--border-soft);
+    border-top:1px solid var(--border); margin-top:20px;
   }
 
+  /* ---------- MODAL ---------- */
+  .modal-scrim{
+    display:none; position:fixed; inset:0; background:rgba(19,23,34,0.45);
+    z-index:80; align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-scrim.show{ display:flex; }
+  .trade-modal{
+    width:100%; max-width:440px; background:var(--surface);
+    border:1px solid var(--border); border-radius:14px;
+    padding:22px; max-height:86vh; overflow-y:auto;
+    box-shadow:0 12px 40px rgba(16,24,40,0.16);
+  }
+  .modal-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px; }
+  .modal-close{
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text-dim);
+    width:28px; height:28px; border-radius:7px; font-size:15px; line-height:1;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .modal-close:hover{ color:var(--text); border-color:var(--border-strong); }
+  .modal-strat{ font-size:12.5px; color:var(--text-dim); margin-bottom:16px; }
+  .modal-metrics{
+    display:grid; grid-template-columns:1fr 1fr; gap:12px 16px;
+    padding:14px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+    margin-bottom:16px;
+  }
+  .mm-label{ font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; }
+  .mm-val{ font-family:var(--mono); font-size:14.5px; font-weight:700; }
+  .modal-note{ font-size:12px; color:var(--text-dim); line-height:1.55; margin-bottom:16px; }
+  .modal-copy-btn{
+    width:100%; background:var(--amber); color:#fff; border:none;
+    padding:11px; border-radius:8px; font-weight:700; font-size:13px;
+  }
+
+  .toast{
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
+    background:var(--text); color:#fff;
+    font-family:var(--mono); font-size:12.5px; font-weight:600;
+    padding:10px 18px; border-radius:20px; z-index:90;
+    opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
+    box-shadow:0 8px 24px rgba(16,24,40,0.25);
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
   /* ---------- MOBILE ---------- */
-  @media (max-width: 880px){
-    .layout{ grid-template-columns:1fr; padding:16px 14px 50px; gap:14px; }
-    .filters-toggle{ display:flex; }
-    aside{
-      display:none;
-      position:fixed; inset:0; top:auto; bottom:0; left:0; right:0;
-      max-height:88vh; border-radius:16px 16px 0 0;
-      z-index:60; margin:0;
-    }
-    aside.open{ display:block; }
-    .aside-mobile-header{
-      display:flex; justify-content:space-between; align-items:center;
-      margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--border);
-    }
-    .aside-mobile-header button{
-      background:var(--panel-2); border:1px solid var(--border); color:var(--text);
-      padding:7px 12px; border-radius:6px; font-size:12.5px; font-weight:600;
-    }
-    .aside-close-x{
-      background:transparent !important; border:none !important; color:var(--text-dim) !important;
-      font-size:18px; padding:2px 6px !important;
-    }
-    .scrim{
-      display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
-      z-index:55;
-    }
-    .scrim.show{ display:block; }
+  @media (max-width: 720px){
+    .layout{ padding:14px 12px 90px; }
+    .header-inner{ padding:12px 14px; }
+    .brand-sub{ display:none; }
+    .data-status{ display:none; }
+    .search-wrap{ order:3; flex-basis:100%; }
+
+    .outlook-body{ grid-template-columns:1fr; }
+    .outlook-col + .outlook-col{ border-left:none; border-top:1px solid var(--border); }
+    .filter-grid{ grid-template-columns:1fr; }
+    .metric-grid{ grid-template-columns:1fr; }
+    .sections-grid{ grid-template-columns:1fr; }
 
     .table-wrap{ display:none; }
     .card-list{ display:flex; }
 
-    .header-inner{ padding:12px 14px; }
-    .brand-sub{ display:none; }
-    .search-wrap{ order:3; flex-basis:100%; }
-    .metric-grid{ grid-template-columns:1fr 1fr; }
+    .apply-bar{
+      position:fixed; left:0; right:0; bottom:0; z-index:70;
+      background:var(--surface); border-top:1px solid var(--border);
+      padding:12px 14px; padding-bottom:calc(12px + env(safe-area-inset-bottom));
+      margin-top:0;
+      box-shadow:0 -4px 16px rgba(16,24,40,0.06);
+    }
+    .active-count{ display:none; }
   }
 </style>
 </head>
@@ -453,33 +411,25 @@
       <input type="text" placeholder="Search ticker or strategy…" id="searchInput">
     </div>
 
-    <button class="filters-toggle" id="filtersToggle">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/></svg>
-      Filters <span class="count" id="filterCount">2</span>
-    </button>
-
     <button class="export-btn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Export JSON / XML
+      Export
     </button>
   </div>
 </header>
 
-<div class="scrim" id="scrim"></div>
-
 <div class="layout">
 
-  <aside id="filterPanel">
-    <div class="aside-mobile-header">
-      <span style="font-weight:600; font-size:14px;">Filters</span>
-      <button class="aside-close-x" id="closeFilters">✕</button>
-    </div>
+  <div class="section-label">Filters</div>
+  <div class="filter-card">
 
-    <div class="filter-group">
-      <h3>Outlook</h3>
-      <div class="outlook-grid">
-        <div>
-          <div class="outlook-label bull">Bullish / Positive</div>
+    <div class="outlook-block">
+      <div class="outlook-header">
+        Outlook &amp; Strategy
+      </div>
+      <div class="outlook-body">
+        <div class="outlook-col">
+          <div class="outlook-col-label bull">Bullish / Positive</div>
           <label class="check-row"><input type="checkbox" checked data-strat="Short Put"> Short Put</label>
           <label class="check-row"><input type="checkbox" data-strat="Covered Call"> Covered Call</label>
           <label class="check-row"><input type="checkbox" data-strat="Bull Put Spread"> Bull Put Spread</label>
@@ -487,8 +437,8 @@
           <label class="check-row"><input type="checkbox" data-pcoi="bull"> P/C OI &lt; 0.7</label>
           <label class="check-row"><input type="checkbox" data-pcvol="bull"> P/C Volume &lt; 0.7</label>
         </div>
-        <div>
-          <div class="outlook-label bear">Bearish / Negative</div>
+        <div class="outlook-col">
+          <div class="outlook-col-label bear">Bearish / Negative</div>
           <label class="check-row"><input type="checkbox" data-strat="Short Call"> Short Call</label>
           <label class="check-row"><input type="checkbox" data-strat="Bear Call Spread"> Bear Call Spread</label>
           <label class="check-row disabled"><input type="checkbox" disabled data-strat="Long Put"> Long Put</label>
@@ -496,130 +446,129 @@
           <label class="check-row"><input type="checkbox" data-pcvol="bear"> P/C Volume &gt; 1.4</label>
         </div>
       </div>
-      <p class="filter-hint">Check any strategy from either side — results combine bullish and bearish setups that match.</p>
+      <div class="filter-hint">Check any strategy from either side — results combine bullish and bearish setups that match.</div>
     </div>
 
-    <hr class="div">
+    <div class="sections-grid">
+      <details class="filter-section" id="qualitySection">
+        <summary>Quality<span class="summary-count" id="qualityCount" style="display:none;"></span></summary>
+        <div class="filter-section-body">
+          <label class="check-row"><input type="checkbox" checked data-quality="buy"> Buy signal</label>
+          <label class="check-row"><input type="checkbox" data-quality="sell"> Sell signal</label>
+          <label class="check-row"><input type="checkbox" data-quality="ema"> Finds support at EMA 8/20</label>
+        </div>
+      </details>
 
-    <div class="filter-group">
-      <h3>Quality</h3>
-      <label class="check-row"><input type="checkbox" checked data-quality="buy"> Buy signal</label>
-      <label class="check-row"><input type="checkbox" data-quality="sell"> Sell signal</label>
-      <label class="check-row"><input type="checkbox" data-quality="ema"> Finds support at EMA 8/20</label>
-    </div>
+      <details class="filter-section" id="riskSection">
+        <summary>Risk<span class="summary-count" id="riskCount" style="display:none;"></span></summary>
+        <div class="filter-section-body">
+          <label class="check-row"><input type="checkbox" data-risk="excludeEarnings"> Exclude earnings within DTE</label>
+          <label class="check-row"><input type="checkbox" data-risk="etfOnly"> ETFs only</label>
+          <label class="check-row"><input type="checkbox" data-risk="marginOfSafety"> Margin of safety (ATR-based)</label>
+        </div>
+      </details>
 
-    <hr class="div">
+      <details class="filter-section" id="rewardSection">
+        <summary>Reward<span class="summary-count" id="rewardCount" style="display:none;"></span></summary>
+        <div class="filter-section-body">
+          <label class="check-row"><input type="checkbox" checked data-reward="ann20"> Min 20% annualized profit</label>
+          <label class="check-row"><input type="checkbox" data-reward="daily10"> Min $10 daily return</label>
+          <label class="check-row"><input type="checkbox" data-reward="roc08"> RoC % &gt; 0.8%</label>
+        </div>
+      </details>
 
-    <div class="filter-group">
-      <h3>Risk</h3>
-      <label class="check-row"><input type="checkbox" data-risk="excludeEarnings"> Exclude earnings within DTE</label>
-      <label class="check-row"><input type="checkbox" data-risk="etfOnly"> ETFs only</label>
-      <label class="check-row"><input type="checkbox" data-risk="marginOfSafety"> Margin of safety (ATR-based)</label>
-    </div>
+      <details class="filter-section" id="expirySection">
+        <summary>Expiration</summary>
+        <div class="filter-section-body">
+          <div class="expiry-row">
+            <select id="expiryMode"><option>By DTE</option><option>By date</option></select>
+            <input type="text" placeholder="Min. days" id="dteMinInput" inputmode="numeric">
+          </div>
+        </div>
+      </details>
 
-    <hr class="div">
-
-    <div class="filter-group">
-      <h3>Reward</h3>
-      <label class="check-row"><input type="checkbox" checked data-reward="ann20"> Min 20% annualized profit</label>
-      <label class="check-row"><input type="checkbox" data-reward="daily10"> Min $10 daily return</label>
-      <label class="check-row"><input type="checkbox" data-reward="roc08"> RoC % &gt; 0.8%</label>
-    </div>
-
-    <hr class="div">
-
-    <div class="filter-group">
-      <h3>Expiration</h3>
-      <div class="expiry-row">
-        <select id="expiryMode"><option>By DTE</option><option>By date</option></select>
-        <input type="text" placeholder="Min. days" id="dteMinInput" inputmode="numeric">
-      </div>
-    </div>
-
-    <hr class="div">
-
-    <div class="filter-group">
-      <h3>Select Metrics <span class="active-badge">4 shown</span></h3>
-      <div class="metric-grid">
-        <label class="check-row"><input type="checkbox" checked> Probability of Touch</label>
-        <label class="check-row"><input type="checkbox"> Margin of Safety</label>
-        <label class="check-row"><input type="checkbox"> Expected Premium</label>
-        <label class="check-row"><input type="checkbox"> Daily Return</label>
-        <label class="check-row"><input type="checkbox" checked> Annualized Profit</label>
-        <label class="check-row"><input type="checkbox"> Risk / Reward Ratio</label>
-        <label class="check-row"><input type="checkbox"> Option Delta</label>
-        <label class="check-row"><input type="checkbox"> Implied Volatility</label>
-        <label class="check-row"><input type="checkbox"> Implied Movement</label>
-        <label class="check-row"><input type="checkbox"> 25 Delta Skew</label>
-        <label class="check-row"><input type="checkbox"> Bid-Ask Spread</label>
-        <label class="check-row"><input type="checkbox"> Call Volume</label>
-        <label class="check-row"><input type="checkbox"> Put Volume</label>
-        <label class="check-row"><input type="checkbox"> Call Open Interest</label>
-        <label class="check-row"><input type="checkbox"> Put Open Interest</label>
-        <label class="check-row"><input type="checkbox"> Put/Call Open Interest</label>
-        <label class="check-row"><input type="checkbox"> Put/Call Volume</label>
-        <label class="check-row"><input type="checkbox"> Total Options Trend</label>
-      </div>
-    </div>
-
-    <div class="ai-card">
-      <h4>✦ AI Trade Analysis</h4>
-      <select>
-        <option>Bullish — strongest upside setups</option>
-        <option>Bearish — strongest downside setups</option>
-        <option>Income — highest annualized yield</option>
-        <option>Conservative — lowest probability of touch</option>
-      </select>
-      <p>Copy the prompt into any AI chat for personalized trade commentary. For better results, also paste <a href="#">Market Regime</a> data into the same chat.</p>
-      <button>Copy Prompt</button>
+      <details class="filter-section" id="metricsSection" style="grid-column:1 / -1;">
+        <summary>Select Metrics<span class="summary-count" id="metricsCount" style="display:none;"></span></summary>
+        <div class="filter-section-body">
+          <div class="metric-grid">
+            <label class="check-row"><input type="checkbox" checked> Probability of Touch</label>
+            <label class="check-row"><input type="checkbox"> Margin of Safety</label>
+            <label class="check-row"><input type="checkbox"> Expected Premium</label>
+            <label class="check-row"><input type="checkbox"> Daily Return</label>
+            <label class="check-row"><input type="checkbox" checked> Annualized Profit</label>
+            <label class="check-row"><input type="checkbox"> Risk / Reward Ratio</label>
+            <label class="check-row"><input type="checkbox"> Option Delta</label>
+            <label class="check-row"><input type="checkbox"> Implied Volatility</label>
+            <label class="check-row"><input type="checkbox"> Implied Movement</label>
+            <label class="check-row"><input type="checkbox"> 25 Delta Skew</label>
+            <label class="check-row"><input type="checkbox"> Bid-Ask Spread</label>
+            <label class="check-row"><input type="checkbox"> Call Volume</label>
+            <label class="check-row"><input type="checkbox"> Put Volume</label>
+            <label class="check-row"><input type="checkbox"> Call Open Interest</label>
+            <label class="check-row"><input type="checkbox"> Put Open Interest</label>
+            <label class="check-row"><input type="checkbox"> Put/Call Open Interest</label>
+            <label class="check-row"><input type="checkbox"> Put/Call Volume</label>
+            <label class="check-row"><input type="checkbox"> Total Options Trend</label>
+          </div>
+        </div>
+      </details>
     </div>
 
     <div class="apply-bar">
       <button class="reset-btn" id="resetFilters">Reset to defaults</button>
+      <span class="active-count" id="activeCountLabel">2 filters active</span>
       <button class="apply-btn" id="applyFilters">Apply filters</button>
     </div>
-  </aside>
+  </div>
 
-  <main>
-    <div class="results-bar">
-      <div class="results-count"><strong id="resultCount">6</strong> setups match your filters</div>
-      <div class="sort-wrap">
-        Sort by
-        <select>
-          <option>Composite rating</option>
-          <option>Annualized profit</option>
-          <option>Probability of touch</option>
-          <option>Days to expiration</option>
-        </select>
-      </div>
+  <div class="ai-card">
+    <h4>✦ AI Trade Analysis</h4>
+    <select>
+      <option>Bullish — strongest upside setups</option>
+      <option>Bearish — strongest downside setups</option>
+      <option>Income — highest annualized yield</option>
+      <option>Conservative — lowest probability of touch</option>
+    </select>
+    <p>Copy the prompt into any AI chat for personalized trade commentary. For better results, also paste <a href="#">Market Regime</a> data into the same chat.</p>
+    <button>Copy Prompt</button>
+  </div>
+
+  <div class="results-bar">
+    <div class="results-count"><strong id="resultCount">6</strong> setups match your filters</div>
+    <div class="sort-wrap">
+      Sort by
+      <select>
+        <option>Composite rating</option>
+        <option>Annualized profit</option>
+        <option>Probability of touch</option>
+        <option>Days to expiration</option>
+      </select>
     </div>
+  </div>
 
-    <!-- DESKTOP TABLE -->
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Symbol / Strategy</th>
-            <th>Side</th>
-            <th>Exp / DTE</th>
-            <th>Prob. of Touch</th>
-            <th>Ann. Profit</th>
-            <th>IV Rank</th>
-            <th>Composite</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Symbol / Strategy</th>
+          <th>Side</th>
+          <th>Exp / DTE</th>
+          <th>Prob. of Touch</th>
+          <th>Ann. Profit</th>
+          <th>IV Rank</th>
+          <th>Composite</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
 
-    <!-- MOBILE CARDS -->
-    <div class="card-list" id="cardList"></div>
+  <div class="card-list" id="cardList"></div>
 
-    <footer>
-      Data reflects the prior session's close (EOD), snapshotted shortly before market close to avoid wide bid/ask distortion. This tool surfaces candidate setups for research purposes only and is not a recommendation to buy or sell any security. Screen for real-time or 15-minute-delayed pricing before entering a trade — quotes shown may be stale relative to the live market.
-    </footer>
-  </main>
+  <footer>
+    Data reflects the prior session's close (EOD), snapshotted shortly before market close to avoid wide bid/ask distortion. This tool surfaces candidate setups for research purposes only and is not a recommendation to buy or sell any security. Screen for real-time or 15-minute-delayed pricing before entering a trade — quotes shown may be stale relative to the live market.
+  </footer>
 </div>
 
 <div class="modal-scrim" id="modalScrim">
@@ -647,7 +596,7 @@
   const tbody = document.getElementById('tableBody');
   const cardList = document.getElementById('cardList');
   const resultCountEl = document.getElementById('resultCount');
-  const filterCountEl = document.getElementById('filterCount');
+  const activeCountLabel = document.getElementById('activeCountLabel');
 
   function meterHtml(score){
     let ticks = '';
@@ -673,12 +622,8 @@
       tbody.innerHTML += `
         <tr>
           <td>
-            <div class="ticker-cell">
-              <div>
-                <div class="ticker-sym">${t.sym} <span style="color:var(--text-faint); font-weight:400;">${t.strike}</span></div>
-                <div class="strat-name">${t.strat}</div>
-              </div>
-            </div>
+            <div class="ticker-sym">${t.sym} <span style="color:var(--text-faint); font-weight:400;">${t.strike}</span></div>
+            <div class="strat-name">${t.strat}</div>
           </td>
           <td>${pill}</td>
           <td class="num">${t.exp} <span style="color:var(--text-faint);">· ${t.dte}d</span></td>
@@ -713,7 +658,6 @@
 
   function computeFiltered(){
     const activeStrats = Array.from(document.querySelectorAll('[data-strat]:checked')).map(cb=>cb.dataset.strat);
-
     const pcoiChecks = Array.from(document.querySelectorAll('[data-pcoi]:checked')).map(cb=>cb.dataset.pcoi);
     const pcvolChecks = Array.from(document.querySelectorAll('[data-pcvol]:checked')).map(cb=>cb.dataset.pcvol);
 
@@ -730,12 +674,8 @@
     const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
 
     return trades.filter(t=>{
-      // Strategy: checking boxes from EITHER outlook panel is a union (OR) — leaving all
-      // unchecked means "don't restrict by strategy" rather than "match nothing."
       if(activeStrats.length && !activeStrats.includes(t.strat)) return false;
 
-      // Put/Call OI and Volume ratio: each checked threshold is an alternative signal to
-      // scan for, so a trade passes if it satisfies ANY checked threshold.
       if(pcoiChecks.length){
         const passesOI = pcoiChecks.some(side => side==='bull' ? t.pcOI < 0.7 : t.pcOI > 1.4);
         if(!passesOI) return false;
@@ -760,38 +700,31 @@
     });
   }
 
+  const FILTER_CHECKBOX_SELECTOR = '[data-strat], [data-quality], [data-risk], [data-reward], [data-pcoi], [data-pcvol]';
+
+  function updateActiveCount(){
+    const n = document.querySelectorAll(`.filter-card input[type="checkbox"]:checked:is(${FILTER_CHECKBOX_SELECTOR})`).length;
+    activeCountLabel.textContent = `${n} filter${n===1?'':'s'} active`;
+  }
+
   function applyFilters(){
     const filtered = computeFiltered();
     render(filtered);
-
-    const activeFilterCount = document.querySelectorAll('aside input[type="checkbox"]:checked').length;
-    filterCountEl.textContent = activeFilterCount;
-
-    closePanel();
+    updateActiveCount();
     showToast(`Filters applied — ${filtered.length} setup${filtered.length===1?'':'s'} found`);
-    document.querySelector('main').scrollIntoView({ behavior:'smooth', block:'start' });
+    document.querySelector('.results-bar').scrollIntoView({ behavior:'smooth', block:'start' });
   }
 
   // The exact state Apply/Reset return to — edit this if your "sensible defaults" change.
   const DEFAULT_CHECKED = ['[data-strat="Short Put"]', '[data-quality="buy"]', '[data-reward="ann20"]'];
 
   function resetFilters(){
-    document.querySelectorAll('aside input[type="checkbox"]:not(:disabled)').forEach(cb=>cb.checked=false);
+    document.querySelectorAll(`.filter-card input[type="checkbox"]:not(:disabled):is(${FILTER_CHECKBOX_SELECTOR})`).forEach(cb=>cb.checked=false);
     DEFAULT_CHECKED.forEach(sel => { document.querySelector(sel).checked = true; });
     document.getElementById('dteMinInput').value = '';
     document.getElementById('searchInput').value = '';
     applyFilters();
   }
-
-  // mobile filter drawer
-  const panel = document.getElementById('filterPanel');
-  const scrim = document.getElementById('scrim');
-  document.getElementById('filtersToggle').addEventListener('click', ()=>{
-    panel.classList.add('open'); scrim.classList.add('show');
-  });
-  document.getElementById('closeFilters').addEventListener('click', closePanel);
-  scrim.addEventListener('click', closePanel);
-  function closePanel(){ panel.classList.remove('open'); scrim.classList.remove('show'); }
 
   document.getElementById('applyFilters').addEventListener('click', applyFilters);
   document.getElementById('resetFilters').addEventListener('click', resetFilters);
@@ -836,7 +769,7 @@
         <div><div class="mm-label">Put/Call OI</div><div class="mm-val">${t.pcOI.toFixed(2)}</div></div>
         <div><div class="mm-label">Put/Call Volume</div><div class="mm-val">${t.pcVol.toFixed(2)}</div></div>
         <div><div class="mm-label">Max Loss (est.)</div><div class="mm-val val-neg">$${t.maxLoss.toLocaleString()}</div></div>
-        <div><div class="mm-label">Composite Rating</div><div class="mm-val" style="color:var(--amber);">${t.score}.0 / 10</div></div>
+        <div><div class="mm-label">Composite Rating</div><div class="mm-val" style="color:var(--amber-strong);">${t.score}.0 / 10</div></div>
       </div>
       <div class="modal-note">Figures are computed from the prior session's EOD close and are for research purposes only — not a recommendation to enter this trade. Verify live pricing before placing an order.</div>
       <button class="modal-copy-btn" id="modalCopyBtn">Copy trade summary</button>
@@ -853,7 +786,6 @@
   modalScrim.addEventListener('click', (e)=>{ if(e.target === modalScrim) closeTradeModal(); });
   document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeTradeModal(); });
 
-  // event delegation — table + card "View" buttons are re-rendered on every filter pass
   document.addEventListener('click', (e)=>{
     const btn = e.target.closest('.row-action');
     if(!btn) return;
@@ -864,9 +796,8 @@
 
   // initial render matches default-checked filters (no toast/scroll on load)
   render(computeFiltered());
-  filterCountEl.textContent = document.querySelectorAll('aside input[type="checkbox"]:checked').length;
+  updateActiveCount();
 
-  // register service worker (enables reliable standalone launch from the home screen)
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('service-worker.js').catch(()=>{});
