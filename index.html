@@ -21,10 +21,10 @@
     --surface:#FFFFFF;
     --surface-2:#FAFBFC;
     --border:#E4E7EC;
-    --border-strong:#D0D5DD;
+    --border-strong:#C4CAD3;
     --text:#131722;
-    --text-dim:#5B6472;
-    --text-faint:#98A2B3;
+    --text-dim:#3F4A5A;
+    --text-faint:#55606D;
     --amber:#B7791F;
     --amber-strong:#8A5A14;
     --amber-soft:#FFF6E5;
@@ -245,8 +245,8 @@
   .results-count{ font-size:13.5px; color:var(--text-dim); }
   .results-count strong{ color:var(--text); font-family:var(--mono); }
   .funnel-note{
-    font-family:var(--mono); font-size:10.5px; color:var(--text-faint);
-    margin-bottom:12px; margin-top:-4px; line-height:1.5;
+    font-family:var(--mono); font-size:11px; font-weight:600; color:var(--text-dim);
+    margin-bottom:12px; margin-top:-4px; line-height:1.6;
   }
   .sort-wrap{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-dim); }
   .sort-wrap select{
@@ -647,8 +647,8 @@
     cardList.innerHTML = '';
 
     if(list.length === 0){
-      tbody.innerHTML = `<tr><td colspan="8" style="padding:32px 14px; text-align:center; color:var(--text-faint);">No setups match these filters. Try loosening reward or risk thresholds.</td></tr>`;
-      cardList.innerHTML = `<div class="trade-card" style="text-align:center; color:var(--text-faint);">No setups match these filters. Try loosening reward or risk thresholds.</div>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="padding:32px 14px; text-align:center; color:var(--text-dim); font-weight:600; font-size:14px;">No setups match these filters. Try loosening reward or risk thresholds.</td></tr>`;
+      cardList.innerHTML = `<div class="trade-card" style="text-align:center; color:var(--text-dim); font-weight:600; font-size:14px;">No setups match these filters. Try loosening reward or risk thresholds.</div>`;
     }
 
     list.forEach((t, idx)=>{
