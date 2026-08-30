@@ -372,7 +372,13 @@
 
     .filter-grid{ grid-template-columns:1fr; }
     .metric-grid{ grid-template-columns:1fr; }
-    .sections-grid{ grid-template-columns:1fr; }
+
+    /* Quality/Risk/Reward/Expiration stay 2-up on phones — only Outlook keeps its own full row */
+    details.filter-section > summary{
+      padding:11px 10px; font-size:12px; gap:4px;
+    }
+    .summary-count{ font-size:10px; padding:1px 6px; margin-left:5px; }
+    details.filter-section > summary::after{ font-size:16px; }
 
     .table-wrap{ display:none; }
     .card-list{ display:flex; }
@@ -387,10 +393,11 @@
     .active-count{ display:none; }
   }
 
-  /* only stack outlook columns on genuinely narrow screens (e.g. iPhone SE) */
+  /* only stack outlook columns AND the sections grid on genuinely narrow screens (e.g. iPhone SE) */
   @media (max-width: 360px){
     .outlook-body{ grid-template-columns:1fr; }
     .outlook-col + .outlook-col{ border-left:none; border-top:1px solid var(--border); }
+    .sections-grid{ grid-template-columns:1fr; }
   }
 </style>
 </head>
