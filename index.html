@@ -246,6 +246,10 @@
   }
   .results-count{ font-size:13.5px; color:var(--text-dim); }
   .results-count strong{ color:var(--text); font-family:var(--mono); }
+  .funnel-note{
+    font-family:var(--mono); font-size:10.5px; color:var(--text-faint);
+    margin-bottom:12px; margin-top:-4px; line-height:1.5;
+  }
   .sort-wrap{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-dim); }
   .sort-wrap select{
     background:var(--surface); border:1px solid var(--border-strong);
@@ -523,14 +527,14 @@
 
   <div class="ai-card">
     <h4>✦ AI Trade Analysis</h4>
-    <select>
+    <select id="aiSetupSelect">
       <option>Bullish — strongest upside setups</option>
       <option>Bearish — strongest downside setups</option>
       <option>Income — highest annualized yield</option>
       <option>Conservative — lowest probability of touch</option>
     </select>
-    <p>Copy the prompt into any AI chat for personalized trade commentary. For better results, also paste <a href="#">Market Regime</a> data into the same chat.</p>
-    <button>Copy Prompt</button>
+    <p>Generates a prompt from your current filters and results — paste it into any AI chat for personalized trade commentary.</p>
+    <button id="copyPromptBtn">Copy Prompt</button>
   </div>
 
   <div class="results-bar">
@@ -545,6 +549,7 @@
       </select>
     </div>
   </div>
+  <div class="funnel-note" id="funnelNote"></div>
 
   <div class="table-wrap">
     <table>
@@ -656,6 +661,8 @@
     resultCountEl.textContent = list.length;
   }
 
+  let lastFunnel = null;
+
   function computeFiltered(){
     const activeStrats = Array.from(document.querySelectorAll('[data-strat]:checked')).map(cb=>cb.dataset.strat);
     const pcoiChecks = Array.from(document.querySelectorAll('[data-pcoi]:checked')).map(cb=>cb.dataset.pcoi);
@@ -673,31 +680,60 @@
     const dteMin = parseInt(document.getElementById('dteMinInput').value, 10);
     const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
 
-    return trades.filter(t=>{
-      if(activeStrats.length && !activeStrats.includes(t.strat)) return false;
+    // Staged funnel — each stage narrows the previous one, so you can see exactly
+    // which filter category is doing the eliminating instead of just a final count.
+    let pool = trades;
+    const funnel = [{ label:'All setups', count: pool.length }];
 
-      if(pcoiChecks.length){
-        const passesOI = pcoiChecks.some(side => side==='bull' ? t.pcOI < 0.7 : t.pcOI > 1.4);
-        if(!passesOI) return false;
-      }
-      if(pcvolChecks.length){
-        const passesVol = pcvolChecks.some(side => side==='bull' ? t.pcVol < 0.7 : t.pcVol > 1.4);
-        if(!passesVol) return false;
-      }
+    if(activeStrats.length || pcoiChecks.length || pcvolChecks.length){
+      pool = pool.filter(t=>{
+        if(activeStrats.length && !activeStrats.includes(t.strat)) return false;
+        if(pcoiChecks.length){
+          const passesOI = pcoiChecks.some(side => side==='bull' ? t.pcOI < 0.7 : t.pcOI > 1.4);
+          if(!passesOI) return false;
+        }
+        if(pcvolChecks.length){
+          const passesVol = pcvolChecks.some(side => side==='bull' ? t.pcVol < 0.7 : t.pcVol > 1.4);
+          if(!passesVol) return false;
+        }
+        return true;
+      });
+      funnel.push({ label:'After Outlook & Strategy', count: pool.length });
+    }
 
-      if(wantBuy && !t.buy) return false;
-      if(wantSell && !t.sell) return false;
-      if(wantEma && !t.ema) return false;
-      if(excludeEarnings && t.earningsSoon) return false;
-      if(etfOnly && !t.isETF) return false;
-      if(wantMoS && !t.marginOfSafety) return false;
-      if(wantAnn20 && t.ap < 20) return false;
-      if(wantDaily10 && t.dailyReturn < 10) return false;
-      if(wantRoc08 && t.roc < 0.8) return false;
-      if(!isNaN(dteMin) && t.dte < dteMin) return false;
-      if(searchTerm && !(t.sym.toLowerCase().includes(searchTerm) || t.strat.toLowerCase().includes(searchTerm))) return false;
-      return true;
-    });
+    if(wantBuy || wantSell || wantEma){
+      pool = pool.filter(t=> (!wantBuy || t.buy) && (!wantSell || t.sell) && (!wantEma || t.ema));
+      funnel.push({ label:'After Quality', count: pool.length });
+    }
+
+    if(excludeEarnings || etfOnly || wantMoS){
+      pool = pool.filter(t=> (!excludeEarnings || !t.earningsSoon) && (!etfOnly || t.isETF) && (!wantMoS || t.marginOfSafety));
+      funnel.push({ label:'After Risk', count: pool.length });
+    }
+
+    if(wantAnn20 || wantDaily10 || wantRoc08){
+      pool = pool.filter(t=> (!wantAnn20 || t.ap >= 20) && (!wantDaily10 || t.dailyReturn >= 10) && (!wantRoc08 || t.roc >= 0.8));
+      funnel.push({ label:'After Reward', count: pool.length });
+    }
+
+    if(!isNaN(dteMin)){
+      pool = pool.filter(t=> t.dte >= dteMin);
+      funnel.push({ label:'After Expiration', count: pool.length });
+    }
+
+    if(searchTerm){
+      pool = pool.filter(t=> t.sym.toLowerCase().includes(searchTerm) || t.strat.toLowerCase().includes(searchTerm));
+      funnel.push({ label:'After search', count: pool.length });
+    }
+
+    lastFunnel = funnel;
+    return pool;
+  }
+
+  function renderFunnel(){
+    const el = document.getElementById('funnelNote');
+    if(!lastFunnel || lastFunnel.length <= 1){ el.textContent = ''; return; }
+    el.textContent = lastFunnel.map(f => `${f.label}: ${f.count}`).join('  →  ');
   }
 
   const FILTER_CHECKBOX_SELECTOR = '[data-strat], [data-quality], [data-risk], [data-reward], [data-pcoi], [data-pcvol]';
@@ -733,10 +769,17 @@
   });
 
   function applyFilters(){
+    const prevCount = currentList.length;
     const filtered = computeFiltered();
     render(filtered);
+    renderFunnel();
     updateActiveCount();
-    showToast(`Filters applied — ${filtered.length} setup${filtered.length===1?'':'s'} found`);
+
+    if(filtered.length === prevCount){
+      showToast(`Filters applied — still ${filtered.length} setup${filtered.length===1?'':'s'} (see funnel below results)`);
+    } else {
+      showToast(`Filters applied — ${filtered.length} setup${filtered.length===1?'':'s'} found`);
+    }
     document.querySelector('.results-bar').scrollIntoView({ behavior:'smooth', block:'start' });
   }
 
@@ -757,6 +800,7 @@
   // search runs immediately without needing Apply, and without the toast/scroll noise
   document.getElementById('searchInput').addEventListener('input', ()=>{
     render(computeFiltered());
+    renderFunnel();
   });
 
   // --- apply feedback toast ---
@@ -767,6 +811,32 @@
     toastEl.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(()=> toastEl.classList.remove('show'), 2200);
+  }
+
+  // --- clipboard helper with fallback for sandboxed/non-secure contexts ---
+  // navigator.clipboard silently fails (or is unavailable) inside many iframe
+  // previews and non-HTTPS contexts — this always returns whether it actually worked.
+  async function copyText(text){
+    try{
+      if(navigator.clipboard && window.isSecureContext){
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    }catch(e){ /* fall through to legacy fallback */ }
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    }catch(e){
+      return false;
+    }
   }
 
   // --- trade detail modal ---
@@ -801,15 +871,65 @@
     `;
     modalScrim.classList.add('show');
     document.getElementById('modalCloseBtn').addEventListener('click', closeTradeModal);
-    document.getElementById('modalCopyBtn').addEventListener('click', ()=>{
+    document.getElementById('modalCopyBtn').addEventListener('click', async ()=>{
       const summary = `${t.sym} ${t.strat} ${t.strike} · exp ${t.exp} (${t.dte}d) · POT ${t.pot}% · Ann. Profit +${t.ap}% · IV Rank ${t.ivr} · Composite ${t.score}.0`;
-      navigator.clipboard?.writeText(summary).catch(()=>{});
-      showToast('Trade summary copied');
+      const ok = await copyText(summary);
+      showToast(ok ? 'Trade summary copied' : 'Copy blocked — select the text manually');
     });
   }
   function closeTradeModal(){ modalScrim.classList.remove('show'); }
   modalScrim.addEventListener('click', (e)=>{ if(e.target === modalScrim) closeTradeModal(); });
   document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeTradeModal(); });
+
+  // --- AI Trade Analysis prompt ---
+  function getCheckedFilterLabels(){
+    return Array.from(document.querySelectorAll(`.filter-card input[type="checkbox"]:checked:is(${FILTER_CHECKBOX_SELECTOR})`))
+      .map(cb => cb.closest('label').textContent.trim());
+  }
+
+  function buildPrompt(){
+    const setup = document.getElementById('aiSetupSelect').value;
+    const filterLabels = getCheckedFilterLabels();
+    const rows = currentList.map((t,i) =>
+      `${i+1}. ${t.sym} ${t.strat} ${t.strike} · exp ${t.exp} (${t.dte}d) · POT ${t.pot}% · Ann. Profit +${t.ap}% · IV Rank ${t.ivr} · P/C OI ${t.pcOI.toFixed(2)} · Composite ${t.score}.0`
+    ).join('\n');
+
+    return `You are an options trading analyst. Focus on this setup type: ${setup}.
+
+Active screener filters: ${filterLabels.join(', ') || 'none'}
+
+Candidate trades (EOD data, prior session's close):
+${rows || '(no trades currently match the active filters)'}
+
+For each candidate, note the key risk (assignment, earnings timing, IV crush) and rank them by risk-adjusted attractiveness for the selected setup type. This is a screening tool, not investment advice — ask me for my account size, risk tolerance, and existing positions before making specific recommendations.`;
+  }
+
+  function openPromptModal(){
+    const promptText = buildPrompt();
+    tradeModal.innerHTML = `
+      <div class="modal-top">
+        <div class="ticker-sym" style="font-size:17px;">AI Trade Analysis Prompt</div>
+        <button class="modal-close" id="modalCloseBtn">✕</button>
+      </div>
+      <div class="modal-strat">Built from ${currentList.length} visible result${currentList.length===1?'':'s'} and your active filters.</div>
+      <textarea id="promptTextarea" readonly
+        style="width:100%; min-height:220px; margin:14px 0; padding:12px; font-family:var(--mono); font-size:11.5px; line-height:1.5; color:var(--text); background:var(--surface-2); border:1px solid var(--border); border-radius:8px; resize:vertical;"
+      >${promptText}</textarea>
+      <div class="modal-note">Paste this into Claude, ChatGPT, or any AI chat. If "Copy" doesn't work in your browser, tap the box above and select all manually.</div>
+      <button class="modal-copy-btn" id="promptCopyBtn">Copy to clipboard</button>
+    `;
+    modalScrim.classList.add('show');
+    document.getElementById('modalCloseBtn').addEventListener('click', closeTradeModal);
+    document.getElementById('promptCopyBtn').addEventListener('click', async ()=>{
+      const ok = await copyText(promptText);
+      showToast(ok ? 'Prompt copied to clipboard' : 'Copy blocked by browser — select the text above and copy manually');
+    });
+    // auto-select the textarea content so a manual copy is a single tap away regardless
+    const ta = document.getElementById('promptTextarea');
+    ta.addEventListener('focus', ()=> ta.select());
+  }
+
+  document.getElementById('copyPromptBtn').addEventListener('click', openPromptModal);
 
   document.addEventListener('click', (e)=>{
     const btn = e.target.closest('.row-action');
@@ -821,6 +941,7 @@
 
   // initial render matches default-checked filters (no toast/scroll on load)
   render(computeFiltered());
+  renderFunnel();
   updateActiveCount();
 
   if ('serviceWorker' in navigator) {
