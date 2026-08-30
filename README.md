@@ -1,7 +1,7 @@
 # StrikeDesk
 
 Ready-made options trades, screened by outlook, risk, reward, and probability — built on
-end-of-day options chain data. Static site, no backend required (yet).
+end-of-day options chain data, refreshed automatically once a day via a free GitHub Action.
 
 ## 1. Create the repo
 
@@ -18,20 +18,28 @@ your-repo/
 ├── index.html
 ├── manifest.json
 ├── service-worker.js
+├── data.json
 ├── .nojekyll
 ├── README.md
-└── icons/
-    ├── icon-192.png
-    ├── icon-512.png
-    ├── apple-touch-icon.png
-    └── favicon.png
+├── icons/
+│   ├── icon-192.png
+│   ├── icon-512.png
+│   ├── apple-touch-icon.png
+│   └── favicon.png
+├── scripts/
+│   ├── fetch_data.py
+│   └── requirements.txt
+└── .github/
+    └── workflows/
+        └── update-data.yml
 ```
 
-Easiest path: on the repo's GitHub page, click **Add file → Upload files**, drag in
-`index.html`, `manifest.json`, `service-worker.js`, `.nojekyll`, and `README.md`, then
-create an `icons` folder by dragging the four icon files in together (typing
-`icons/icon-192.png` etc. as the file name when you drop a single file also works, if
-GitHub's uploader doesn't preserve the subfolder automatically).
+GitHub's drag-and-drop "Upload files" button doesn't always preserve subfolders. The
+`.github/workflows/` path specifically needs to exist exactly as shown, or the Action
+won't be picked up — the safest way to create nested folders through the web UI is
+**Add file → Create new file**, then type the full path (e.g.
+`.github/workflows/update-data.yml`) as the filename; GitHub creates the folders for
+you. Do the same for `scripts/fetch_data.py`.
 
 ## 3. Turn on GitHub Pages
 
@@ -49,30 +57,65 @@ GitHub's uploader doesn't preserve the subfolder automatically).
 3. Scroll down and tap **Add to Home Screen**.
 4. Confirm the name (defaults to "StrikeDesk") and tap **Add**.
 
-It'll now launch full-screen from your home screen, no Safari address bar, with the
-bar-chart icon you generated.
+It'll now launch full-screen from your home screen, no Safari address bar.
+
+## 5. Turn on the nightly data refresh
+
+The repo ships with `.github/workflows/update-data.yml`, which is already scheduled to
+run weekday evenings after market close. Nothing extra to configure — but GitHub
+disables scheduled (`cron`) workflows automatically if a repo goes 60 days with no
+activity, so if data ever stops updating, check the **Actions** tab and re-enable it
+there.
+
+**To test it right away instead of waiting for the schedule:** go to your repo's
+**Actions** tab → click **Update EOD options data** in the left sidebar → **Run workflow**
+→ **Run workflow** again to confirm. It takes a minute or two; when it finishes, `data.json`
+in your repo will have a real `generated_at` timestamp and real trade data instead of the
+seed placeholder.
 
 ## Updating the site later
 
 Any time you push new commits to `main` (or re-upload changed files through the GitHub
 UI), GitHub Pages redeploys automatically within a minute or two. If you change
 `index.html`, `manifest.json`, or any icon, bump `CACHE_NAME` in `service-worker.js`
-(e.g. `strikedesk-v1` → `strikedesk-v2`) so phones that already installed the app pick
-up the change instead of serving a stale cached copy.
+(e.g. `strikedesk-v8` → `strikedesk-v9`) so phones that already installed the app pick
+up the change instead of serving a stale cached copy. `data.json` is exempt from this —
+the service worker always fetches it fresh over the network.
 
-## Current state
+## How the data pipeline works
 
-Right now all trade data is mocked directly in `index.html` (see the `trades` array in
-the `<script>` block) — there's no live data source wired up yet. Filtering, the trade
-detail modal, and the mobile drawer are all fully functional against that mock data.
+- `scripts/fetch_data.py` pulls prices and options chains from Yahoo Finance via the
+  `yfinance` library (free, no API key — but unofficial and not guaranteed stable by
+  Yahoo; it can break or get rate-limited without warning).
+- It picks an expiration ~14–55 days out per ticker, selects strikes near a ~0.20 delta
+  (a common informal "20-delta" premium-selling convention), and computes the fields the
+  UI displays.
+- `.github/workflows/update-data.yml` runs that script on GitHub's servers (which have
+  full internet access, unlike this sandbox) on a schedule, and commits the resulting
+  `data.json` back to the repo automatically.
+- `index.html` fetches `data.json` on load instead of using any hardcoded data.
+
+**Read the docstring at the top of `scripts/fetch_data.py` before trusting the numbers.**
+Several fields are approximations, clearly labeled as such in the code:
+- `iv` is real, straight from Yahoo's option chain.
+- `delta` is computed here via Black-Scholes (0% dividend yield assumed) — a real
+  broker's delta may differ slightly.
+- `pot` (probability of touch) uses the rough trader heuristic `2 × |delta|`, not a
+  rigorous calculation.
+- `ivr` (IV Rank) is a realized-volatility-percentile proxy, not true IV rank (which
+  needs a year of historical *option* IV data that isn't freely available).
+- `score` (composite rating) is an illustrative weighted blend — adjust the weights in
+  `composite_score()` in the script to match what you actually care about.
+
+To change which tickers get screened, edit the `TICKERS` list near the top of
+`scripts/fetch_data.py`.
 
 ## Where this goes next
 
-- **Real EOD data**: swap the mock `trades` array for a fetch against a real end-of-day
-  options provider (ORATS, EODHD, Finnhub, etc.).
-- **Free nightly refresh without a backend**: a scheduled GitHub Actions workflow can
-  pull EOD data after market close, write it to a `data.json` file in this repo, and
-  commit it automatically. `index.html` then just fetches `data.json` instead of using
-  the hardcoded array — zero server cost, updates once a day.
-- **AI Trade Analysis button**: currently just a UI shell — wire "Copy Prompt" to build
-  a real prompt string from the active filters + visible rows.
+- **Better probability/IV-rank math**: swap the approximations above for a real options
+  analytics library or paid data provider (ORATS, EODHD) if the estimates aren't good
+  enough for how you're using this.
+- **More strategies per ticker**: right now each ticker gets exactly one strategy pick
+  per run; the script could generate several candidates per ticker instead of one.
+- **AI Trade Analysis**: "Copy Filters" currently copies your filter selections as plain
+  text — it could be extended to build a fuller prompt including the visible results.

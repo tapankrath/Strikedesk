@@ -1,6 +1,6 @@
 // StrikeDesk — minimal app-shell cache.
 // Bump CACHE_NAME whenever you ship a change, so old clients pick up the new files.
-const CACHE_NAME = 'strikedesk-v8';
+const CACHE_NAME = 'strikedesk-v9';
 const APP_SHELL = [
   './',
   './index.html',
@@ -27,14 +27,30 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-first for navigation/HTML so you always see the latest deploy when online,
-// falling back to the cached shell when offline. Everything else is cache-first.
+// Network-first for navigation/HTML and for data.json — both change over time
+// (deploys and the nightly data refresh, respectively), so a stale cached copy
+// would silently defeat the point of updating them. Everything else (icons,
+// manifest) is static and safe to serve cache-first.
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  const url = new URL(request.url);
 
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  if (url.pathname.endsWith('/data.json')) {
+    event.respondWith(
+      fetch(request, { cache: 'no-store' })
+        .then((res) => {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          return res;
+        })
+        .catch(() => caches.match(request))
     );
     return;
   }

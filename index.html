@@ -414,8 +414,8 @@
     </div>
 
     <div class="data-status">
-      <span class="pulse-dot"></span>
-      EOD data · Aug 26 close
+      <span class="pulse-dot" id="dataStatusDot"></span>
+      <span id="dataStatusText">Loading data…</span>
     </div>
 
     <div class="search-wrap">
@@ -538,7 +538,7 @@
   </div>
 
   <div class="results-bar">
-    <div class="results-count"><strong id="resultCount">6</strong> setups match your filters</div>
+    <div class="results-count"><strong id="resultCount">…</strong> setups match your filters</div>
     <div class="sort-wrap">
       Sort by
       <select>
@@ -583,18 +583,43 @@
 <div class="toast" id="toast">Filters applied</div>
 
 <script>
-  // Mock EOD dataset — fields line up with the filter controls above.
-  const trades = [
-    { sym:"AAPL", strat:"Short Put",       side:"bull", isETF:false, strike:"$225 P",   exp:"Sep 19", dte:23, pot:18, ap:24.6, ivr:41, dailyReturn:12.30, roc:1.10, score:8, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:-0.22, iv:34.2, premium:2.15, breakeven:222.85, maxLoss:22285, pcOI:0.62, pcVol:0.58 },
-    { sym:"MSFT", strat:"Bull Put Spread", side:"bull", isETF:false, strike:"$480/470", exp:"Oct 17", dte:51, pot:14, ap:19.2, ivr:33, dailyReturn:7.10,  roc:0.62, score:7, buy:true,  sell:false, ema:false, earningsSoon:true,  marginOfSafety:true,  delta:-0.18, iv:28.7, premium:3.40, breakeven:476.60, maxLoss:660,   pcOI:0.71, pcVol:0.65 },
-    { sym:"NVDA", strat:"Covered Call",    side:"bull", isETF:false, strike:"$185 C",   exp:"Sep 19", dte:23, pot:29, ap:31.4, ivr:58, dailyReturn:18.40, roc:1.35, score:6, buy:false, sell:true,  ema:false, earningsSoon:true,  marginOfSafety:false, delta:0.31,  iv:51.5, premium:4.80, breakeven:180.20, maxLoss:18020, pcOI:0.85, pcVol:0.77 },
-    { sym:"XOM",  strat:"Short Put",       side:"bull", isETF:false, strike:"$108 P",   exp:"Sep 5",  dte:9,  pot:11, ap:21.8, ivr:27, dailyReturn:9.80,  roc:0.95, score:9, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:-0.15, iv:22.4, premium:1.05, breakeven:106.95, maxLoss:10695, pcOI:0.55, pcVol:0.50 },
-    { sym:"JPM",  strat:"Short Put",       side:"bull", isETF:false, strike:"$285 P",   exp:"Oct 17", dte:51, pot:16, ap:17.5, ivr:24, dailyReturn:6.40,  roc:0.55, score:8, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:-0.19, iv:20.1, premium:2.70, breakeven:282.30, maxLoss:28230, pcOI:0.68, pcVol:0.60 },
-    { sym:"SPY",  strat:"Covered Call",    side:"bull", isETF:true,  strike:"$580 C",   exp:"Sep 19", dte:23, pot:19, ap:15.9, ivr:18, dailyReturn:5.20,  roc:0.48, score:7, buy:true,  sell:false, ema:true,  earningsSoon:false, marginOfSafety:true,  delta:0.27,  iv:15.6, premium:3.10, breakeven:576.90, maxLoss:57690, pcOI:0.90, pcVol:0.82 },
-    { sym:"META", strat:"Bull Put Spread", side:"bull", isETF:false, strike:"$700/685", exp:"Sep 5",  dte:9,  pot:24, ap:29.7, ivr:52, dailyReturn:16.90, roc:1.22, score:5, buy:false, sell:false, ema:false, earningsSoon:true,  marginOfSafety:false, delta:-0.29, iv:47.3, premium:5.60, breakeven:694.40, maxLoss:940,   pcOI:1.48, pcVol:1.40 },
-    { sym:"TSLA", strat:"Bear Call Spread",side:"bear", isETF:false, strike:"$430/440", exp:"Sep 19", dte:23, pot:22, ap:26.1, ivr:64, dailyReturn:14.20, roc:1.05, score:6, buy:false, sell:true,  ema:false, earningsSoon:true,  marginOfSafety:false, delta:0.24,  iv:59.8, premium:3.90, breakeven:433.90, maxLoss:610,   pcOI:1.62, pcVol:1.55 },
-    { sym:"AMD",  strat:"Short Call",      side:"bear", isETF:false, strike:"$165 C",   exp:"Sep 19", dte:23, pot:20, ap:27.3, ivr:55, dailyReturn:13.10, roc:1.02, score:6, buy:false, sell:true,  ema:false, earningsSoon:false, marginOfSafety:false, delta:0.26,  iv:49.0, premium:3.35, breakeven:168.35, maxLoss:16835, pcOI:1.71, pcVol:1.65 },
-  ];
+  // Trade data is loaded from data.json (see loadTrades() near the bottom of this
+  // script) — this array starts empty and gets populated once the fetch resolves.
+  // data.json is either the committed seed file, or real output from the nightly
+  // update-data GitHub Action (scripts/fetch_data.py) once that's run at least once.
+  let trades = [];
+
+  function formatDataDate(isoString){
+    if(!isoString) return null;
+    const d = new Date(isoString);
+    if(isNaN(d)) return null;
+    return d.toLocaleDateString(undefined, { month:'short', day:'numeric' });
+  }
+
+  async function loadTrades(){
+    const statusText = document.getElementById('dataStatusText');
+    const statusDot = document.getElementById('dataStatusDot');
+    try{
+      const res = await fetch('data.json', { cache:'no-store' });
+      if(!res.ok) throw new Error(`data.json fetch failed: ${res.status}`);
+      const json = await res.json();
+      trades = Array.isArray(json.trades) ? json.trades : [];
+
+      const dateLabel = formatDataDate(json.generated_at);
+      if(dateLabel){
+        statusText.textContent = `EOD data · ${dateLabel} close`;
+        statusDot.style.background = 'var(--green)';
+      } else {
+        statusText.textContent = 'Seed data — not live yet';
+        statusDot.style.background = 'var(--text-faint)';
+      }
+    }catch(err){
+      console.error('Failed to load data.json', err);
+      trades = [];
+      statusText.textContent = 'Data unavailable';
+      statusDot.style.background = 'var(--red)';
+    }
+  }
 
   let currentList = [];
 
@@ -939,9 +964,11 @@
   });
 
   // initial render matches default-checked filters (no toast/scroll on load)
-  render(computeFiltered());
-  renderFunnel();
-  updateActiveCount();
+  loadTrades().then(() => {
+    render(computeFiltered());
+    renderFunnel();
+    updateActiveCount();
+  });
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
