@@ -525,15 +525,9 @@
   </div>
 
   <div class="ai-card">
-    <h4>✦ AI Trade Analysis</h4>
-    <select id="aiSetupSelect">
-      <option>Bullish — strongest upside setups</option>
-      <option>Bearish — strongest downside setups</option>
-      <option>Income — highest annualized yield</option>
-      <option>Conservative — lowest probability of touch</option>
-    </select>
-    <p>Generates a prompt from your current filters and results — paste it into any AI chat for personalized trade commentary.</p>
-    <button id="copyPromptBtn">Copy Prompt</button>
+    <h4>✦ Copy Filters</h4>
+    <p>Copies your currently selected filters as plain text — paste them anywhere: notes, a chat, a teammate.</p>
+    <button id="copyPromptBtn">Copy Filters</button>
   </div>
 
   <div class="results-bar">
@@ -880,48 +874,47 @@
   modalScrim.addEventListener('click', (e)=>{ if(e.target === modalScrim) closeTradeModal(); });
   document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeTradeModal(); });
 
-  // --- AI Trade Analysis prompt ---
-  function getCheckedFilterLabels(){
-    return Array.from(document.querySelectorAll(`.filter-card input[type="checkbox"]:checked:is(${FILTER_CHECKBOX_SELECTOR})`))
-      .map(cb => cb.closest('label').textContent.trim());
-  }
+  // --- Copy Filters ---
+  function buildFiltersText(){
+    const groups = [
+      { label:'Outlook & Strategy', selector:'[data-strat]:checked, [data-pcoi]:checked, [data-pcvol]:checked' },
+      { label:'Quality',            selector:'[data-quality]:checked' },
+      { label:'Risk',               selector:'[data-risk]:checked' },
+      { label:'Reward',             selector:'[data-reward]:checked' },
+    ];
 
-  function buildPrompt(){
-    const setup = document.getElementById('aiSetupSelect').value;
-    const filterLabels = getCheckedFilterLabels();
-    const rows = currentList.map((t,i) =>
-      `${i+1}. ${t.sym} ${t.strat} ${t.strike} · exp ${t.exp} (${t.dte}d) · POT ${t.pot}% · Ann. Profit +${t.ap}% · IV Rank ${t.ivr} · P/C OI ${t.pcOI.toFixed(2)} · Composite ${t.score}.0`
-    ).join('\n');
+    const lines = [];
+    groups.forEach(g=>{
+      const items = Array.from(document.querySelectorAll(`.filter-card ${g.selector}`))
+        .map(cb => cb.closest('label').textContent.trim());
+      if(items.length) lines.push(`${g.label}: ${items.join(', ')}`);
+    });
 
-    return `You are an options trading analyst. Focus on this setup type: ${setup}.
+    const dteMin = document.getElementById('dteMinInput').value.trim();
+    if(dteMin) lines.push(`Expiration: min ${dteMin} DTE`);
 
-Active screener filters: ${filterLabels.join(', ') || 'none'}
-
-Candidate trades (EOD data, prior session's close):
-${rows || '(no trades currently match the active filters)'}
-
-For each candidate, note the key risk (assignment, earnings timing, IV crush) and rank them by risk-adjusted attractiveness for the selected setup type. This is a screening tool, not investment advice — ask me for my account size, risk tolerance, and existing positions before making specific recommendations.`;
+    return lines.join('\n') || 'No filters selected.';
   }
 
   function openPromptModal(){
-    const promptText = buildPrompt();
+    const filtersText = buildFiltersText();
     tradeModal.innerHTML = `
       <div class="modal-top">
-        <div class="ticker-sym" style="font-size:17px;">AI Trade Analysis Prompt</div>
+        <div class="ticker-sym" style="font-size:17px;">Active Filters</div>
         <button class="modal-close" id="modalCloseBtn">✕</button>
       </div>
-      <div class="modal-strat">Built from ${currentList.length} visible result${currentList.length===1?'':'s'} and your active filters.</div>
+      <div class="modal-strat">Your currently selected filters, ready to paste anywhere.</div>
       <textarea id="promptTextarea" readonly
-        style="width:100%; min-height:220px; margin:14px 0; padding:12px; font-family:var(--mono); font-size:11.5px; line-height:1.5; color:var(--text); background:var(--surface-2); border:1px solid var(--border); border-radius:8px; resize:vertical;"
-      >${promptText}</textarea>
-      <div class="modal-note">Paste this into Claude, ChatGPT, or any AI chat. If "Copy" doesn't work in your browser, tap the box above and select all manually.</div>
+        style="width:100%; min-height:160px; margin:14px 0; padding:12px; font-family:var(--mono); font-size:11.5px; line-height:1.5; color:var(--text); background:var(--surface-2); border:1px solid var(--border); border-radius:8px; resize:vertical;"
+      >${filtersText}</textarea>
+      <div class="modal-note">If "Copy" doesn't work in your browser, tap the box above and select all manually.</div>
       <button class="modal-copy-btn" id="promptCopyBtn">Copy to clipboard</button>
     `;
     modalScrim.classList.add('show');
     document.getElementById('modalCloseBtn').addEventListener('click', closeTradeModal);
     document.getElementById('promptCopyBtn').addEventListener('click', async ()=>{
-      const ok = await copyText(promptText);
-      showToast(ok ? 'Prompt copied to clipboard' : 'Copy blocked by browser — select the text above and copy manually');
+      const ok = await copyText(filtersText);
+      showToast(ok ? 'Filters copied to clipboard' : 'Copy blocked by browser — select the text above and copy manually');
     });
     // auto-select the textarea content so a manual copy is a single tap away regardless
     const ta = document.getElementById('promptTextarea');
