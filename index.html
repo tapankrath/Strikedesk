@@ -117,27 +117,20 @@
     margin-bottom:14px;
   }
 
-  .outlook-block{
-    border:1px solid var(--border); border-radius:9px; background:var(--surface-2);
-    margin-bottom:12px; overflow:hidden;
-  }
-  .outlook-header{
-    padding:12px 14px; font-weight:600; font-size:13px;
-    display:flex; align-items:center; justify-content:space-between;
-    border-bottom:1px solid var(--border);
-  }
+  .outlook-details{ margin-bottom:12px; }
+  .outlook-details > summary{ font-weight:700; }
   .outlook-body{
     display:grid; grid-template-columns:1fr 1fr; gap:0;
   }
-  .outlook-col{ padding:12px 14px; }
+  .outlook-col{ padding:10px 12px; }
   .outlook-col + .outlook-col{ border-left:1px solid var(--border); }
   .outlook-col-label{
-    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
-    margin-bottom:8px;
+    font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em;
+    margin-bottom:6px;
   }
   .outlook-col-label.bull{ color:var(--green); }
   .outlook-col-label.bear{ color:var(--red); }
-  .filter-hint{ font-size:11px; color:var(--text-faint); line-height:1.5; padding:0 14px 12px; }
+  .filter-hint{ font-size:10.5px; color:var(--text-faint); line-height:1.45; padding:0 12px 12px; }
 
   details.filter-section{
     border:1px solid var(--border); border-radius:9px; background:var(--surface-2);
@@ -187,6 +180,11 @@
   }
   .check-row input[type="checkbox"]:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
   .check-row.disabled{ opacity:0.4; pointer-events:none; }
+
+  .outlook-col .check-row{
+    padding:5px 2px; font-size:12px; gap:7px;
+  }
+  .outlook-col .check-row input[type="checkbox"]{ width:14px; height:14px; }
 
   .expiry-row{ display:flex; gap:8px; }
   .expiry-row select, .expiry-row input{
@@ -369,8 +367,6 @@
     .data-status{ display:none; }
     .search-wrap{ order:3; flex-basis:100%; }
 
-    .outlook-body{ grid-template-columns:1fr; }
-    .outlook-col + .outlook-col{ border-left:none; border-top:1px solid var(--border); }
     .filter-grid{ grid-template-columns:1fr; }
     .metric-grid{ grid-template-columns:1fr; }
     .sections-grid{ grid-template-columns:1fr; }
@@ -386,6 +382,12 @@
       box-shadow:0 -4px 16px rgba(16,24,40,0.06);
     }
     .active-count{ display:none; }
+  }
+
+  /* only stack outlook columns on genuinely narrow screens (e.g. iPhone SE) */
+  @media (max-width: 360px){
+    .outlook-body{ grid-template-columns:1fr; }
+    .outlook-col + .outlook-col{ border-left:none; border-top:1px solid var(--border); }
   }
 </style>
 </head>
@@ -423,10 +425,8 @@
   <div class="section-label">Filters</div>
   <div class="filter-card">
 
-    <div class="outlook-block">
-      <div class="outlook-header">
-        Outlook &amp; Strategy
-      </div>
+    <details class="filter-section outlook-details" id="outlookSection">
+      <summary>Outlook &amp; Strategy<span class="summary-count" id="outlookCount" style="display:none;"></span></summary>
       <div class="outlook-body">
         <div class="outlook-col">
           <div class="outlook-col-label bull">Bullish / Positive</div>
@@ -435,7 +435,7 @@
           <label class="check-row"><input type="checkbox" data-strat="Bull Put Spread"> Bull Put Spread</label>
           <label class="check-row disabled"><input type="checkbox" disabled data-strat="Long Call"> Long Call</label>
           <label class="check-row"><input type="checkbox" data-pcoi="bull"> P/C OI &lt; 0.7</label>
-          <label class="check-row"><input type="checkbox" data-pcvol="bull"> P/C Volume &lt; 0.7</label>
+          <label class="check-row"><input type="checkbox" data-pcvol="bull"> P/C Vol &lt; 0.7</label>
         </div>
         <div class="outlook-col">
           <div class="outlook-col-label bear">Bearish / Negative</div>
@@ -443,11 +443,11 @@
           <label class="check-row"><input type="checkbox" data-strat="Bear Call Spread"> Bear Call Spread</label>
           <label class="check-row disabled"><input type="checkbox" disabled data-strat="Long Put"> Long Put</label>
           <label class="check-row"><input type="checkbox" data-pcoi="bear"> P/C OI &gt; 1.4</label>
-          <label class="check-row"><input type="checkbox" data-pcvol="bear"> P/C Volume &gt; 1.4</label>
+          <label class="check-row"><input type="checkbox" data-pcvol="bear"> P/C Vol &gt; 1.4</label>
         </div>
       </div>
       <div class="filter-hint">Check any strategy from either side — results combine bullish and bearish setups that match.</div>
-    </div>
+    </details>
 
     <div class="sections-grid">
       <details class="filter-section" id="qualitySection">
@@ -702,10 +702,35 @@
 
   const FILTER_CHECKBOX_SELECTOR = '[data-strat], [data-quality], [data-risk], [data-reward], [data-pcoi], [data-pcvol]';
 
+  const SECTION_BADGES = {
+    outlookSection: 'outlookCount',
+    qualitySection: 'qualityCount',
+    riskSection: 'riskCount',
+    rewardSection: 'rewardCount',
+    metricsSection: 'metricsCount',
+  };
+
+  function updateSectionBadges(){
+    Object.entries(SECTION_BADGES).forEach(([sectionId, badgeId])=>{
+      const section = document.getElementById(sectionId);
+      const badge = document.getElementById(badgeId);
+      if(!section || !badge) return;
+      const n = section.querySelectorAll('input[type="checkbox"]:checked').length;
+      badge.textContent = n;
+      badge.style.display = n > 0 ? 'inline-block' : 'none';
+    });
+  }
+
   function updateActiveCount(){
     const n = document.querySelectorAll(`.filter-card input[type="checkbox"]:checked:is(${FILTER_CHECKBOX_SELECTOR})`).length;
     activeCountLabel.textContent = `${n} filter${n===1?'':'s'} active`;
+    updateSectionBadges();
   }
+
+  // badges update live as you check boxes, before you even hit Apply
+  document.querySelector('.filter-card').addEventListener('change', (e)=>{
+    if(e.target.matches('input[type="checkbox"]')) updateSectionBadges();
+  });
 
   function applyFilters(){
     const filtered = computeFiltered();
