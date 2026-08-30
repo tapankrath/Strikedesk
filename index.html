@@ -64,11 +64,10 @@
   }
   .brand{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
   .brand-mark{
-    width:30px; height:30px; border-radius:7px;
-    background:linear-gradient(155deg, var(--amber), var(--amber-strong));
+    width:30px; height:30px; flex-shrink:0;
     display:flex; align-items:center; justify-content:center;
-    font-family:var(--mono); font-weight:700; color:#fff; font-size:13px;
   }
+  .brand-mark svg{ display:block; border-radius:7px; }
   .brand-name{ font-weight:700; font-size:15px; letter-spacing:-0.01em; color:var(--text); }
   .brand-sub{ font-size:10.5px; color:var(--text-faint); font-family:var(--mono); letter-spacing:0.03em;}
 
@@ -406,7 +405,15 @@
 <header>
   <div class="header-inner">
     <div class="brand">
-      <div class="brand-mark">SD</div>
+      <div class="brand-mark">
+        <svg width="30" height="30" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-label="StrikeDesk logo">
+          <rect width="24" height="24" fill="#0E1116"/>
+          <rect x="2.5" y="14" width="3" height="6"  rx="1.2" fill="#8A5A14"/>
+          <rect x="8"   y="11" width="3" height="9"  rx="1.2" fill="#A8701A"/>
+          <rect x="13.5" y="8" width="3" height="12" rx="1.2" fill="#C48720"/>
+          <rect x="19"  y="4"  width="3" height="16" rx="1.2" fill="#F0A937"/>
+        </svg>
+      </div>
       <div>
         <div class="brand-name">StrikeDesk</div>
         <div class="brand-sub">READY-MADE OPTION TRADES</div>
