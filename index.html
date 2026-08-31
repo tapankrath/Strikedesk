@@ -50,7 +50,10 @@
     text-rendering:optimizeLegibility;
     min-height:100vh;
     width:100%;
+    max-width:100vw;
     overflow-x:hidden;
+    overscroll-behavior-x:none;
+    touch-action:pan-y;
     position:relative;
   }
   ::selection{ background:var(--amber-soft); color:var(--amber-strong); }
@@ -489,7 +492,7 @@
       <div class="outlook-body">
         <div class="outlook-col">
           <div class="outlook-col-label bull">Bullish / Positive</div>
-          <label class="check-row"><input type="checkbox" checked data-strat="Short Put"> Short Put</label>
+          <label class="check-row"><input type="checkbox" data-strat="Short Put"> Short Put</label>
           <label class="check-row"><input type="checkbox" data-strat="Covered Call"> Covered Call</label>
           <label class="check-row"><input type="checkbox" data-strat="Bull Put Spread"> Bull Put Spread</label>
           <label class="check-row disabled"><input type="checkbox" disabled data-strat="Long Call"> Long Call</label>
@@ -512,7 +515,7 @@
       <details class="filter-section" id="qualitySection">
         <summary>Quality<span class="summary-count" id="qualityCount" style="display:none;"></span></summary>
         <div class="filter-section-body">
-          <label class="check-row"><input type="checkbox" checked data-quality="buy"> Buy signal</label>
+          <label class="check-row"><input type="checkbox" data-quality="buy"> Buy signal</label>
           <label class="check-row"><input type="checkbox" data-quality="sell"> Sell signal</label>
           <label class="check-row"><input type="checkbox" data-quality="ema"> Finds support at EMA 8/20</label>
         </div>
@@ -530,7 +533,7 @@
       <details class="filter-section" id="rewardSection">
         <summary>Reward<span class="summary-count" id="rewardCount" style="display:none;"></span></summary>
         <div class="filter-section-body">
-          <label class="check-row"><input type="checkbox" checked data-reward="ann20"> Min 20% annualized profit</label>
+          <label class="check-row"><input type="checkbox" data-reward="ann20"> Min 20% annualized profit</label>
           <label class="check-row"><input type="checkbox" data-reward="daily10"> Min $10 daily return</label>
           <label class="check-row"><input type="checkbox" data-reward="roc08"> RoC % &gt; 0.8%</label>
         </div>
@@ -541,7 +544,7 @@
         <div class="filter-section-body">
           <div class="expiry-row">
             <select id="expiryMode"><option>By DTE</option><option>By date</option></select>
-            <input type="text" placeholder="Min. days" id="dteMinInput" inputmode="numeric">
+            <input type="text" placeholder="Min. days" id="dteMinInput" inputmode="numeric" value="15">
           </div>
         </div>
       </details>
@@ -550,11 +553,11 @@
         <summary>Select Metrics<span class="summary-count" id="metricsCount" style="display:none;"></span></summary>
         <div class="filter-section-body">
           <div class="metric-grid">
-            <label class="check-row"><input type="checkbox" checked> Probability of Touch</label>
+            <label class="check-row"><input type="checkbox"> Probability of Touch</label>
             <label class="check-row"><input type="checkbox"> Margin of Safety</label>
             <label class="check-row"><input type="checkbox"> Expected Premium</label>
             <label class="check-row"><input type="checkbox"> Daily Return</label>
-            <label class="check-row"><input type="checkbox" checked> Annualized Profit</label>
+            <label class="check-row"><input type="checkbox"> Annualized Profit</label>
             <label class="check-row"><input type="checkbox"> Risk / Reward Ratio</label>
             <label class="check-row"><input type="checkbox"> Option Delta</label>
             <label class="check-row"><input type="checkbox"> Implied Volatility</label>
@@ -859,12 +862,14 @@
   }
 
   // The exact state Apply/Reset return to — edit this if your "sensible defaults" change.
-  const DEFAULT_CHECKED = ['[data-strat="Short Put"]', '[data-quality="buy"]', '[data-reward="ann20"]'];
+  // Currently: no filters pre-selected, only a 15-day minimum DTE.
+  const DEFAULT_CHECKED = [];
+  const DEFAULT_DTE = '15';
 
   function resetFilters(){
     document.querySelectorAll(`.filter-card input[type="checkbox"]:not(:disabled):is(${FILTER_CHECKBOX_SELECTOR})`).forEach(cb=>cb.checked=false);
     DEFAULT_CHECKED.forEach(sel => { document.querySelector(sel).checked = true; });
-    document.getElementById('dteMinInput').value = '';
+    document.getElementById('dteMinInput').value = DEFAULT_DTE;
     document.getElementById('searchInput').value = '';
     applyFilters();
   }
