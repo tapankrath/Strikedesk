@@ -43,8 +43,28 @@ except ImportError:
 
 # --- Configuration -----------------------------------------------------------
 
-TICKERS = ["AAPL", "MSFT", "NVDA", "XOM", "JPM", "SPY", "META", "TSLA", "AMD"]
-KNOWN_ETFS = {"SPY", "QQQ", "IWM", "DIA", "XLF", "XLE", "XLK", "GLD"}
+def load_tickers():
+    """
+    Reads the watchlist from tickers.json (repo root) so it can be edited without
+    touching this script — either by hand on GitHub, or via the "Manage Tickers"
+    panel in the app, which generates ready-to-paste JSON for this file.
+    Falls back to a small built-in default set if the file is missing or invalid,
+    so a bad edit here can't break the nightly run entirely.
+    """
+    default_tickers = ["AAPL", "MSFT", "NVDA", "XOM", "JPM", "SPY", "META", "TSLA", "AMD"]
+    default_etfs = ["SPY", "QQQ", "IWM", "DIA", "XLF", "XLE", "XLK", "GLD"]
+    try:
+        with open("tickers.json") as f:
+            cfg = json.load(f)
+        tickers = cfg.get("tickers") or default_tickers
+        etfs = set(cfg.get("etfs") or default_etfs)
+        return [t.strip().upper() for t in tickers if t.strip()], etfs
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"tickers.json missing or invalid ({e}) — using built-in defaults", file=sys.stderr)
+        return default_tickers, set(default_etfs)
+
+
+TICKERS, KNOWN_ETFS = load_tickers()
 
 TARGET_DTE_MIN = 14
 TARGET_DTE_MAX = 55
