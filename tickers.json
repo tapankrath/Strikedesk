@@ -1,4 +1,25 @@
 {
-  "tickers": ["AAPL", "MSFT", "NVDA", "XOM", "JPM", "SPY", "META", "TSLA", "AMD"],
-  "etfs": ["SPY", "QQQ", "IWM", "DIA", "XLF", "XLE", "XLK", "GLD"]
+  "tickers": [
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "XOM",
+    "JPM",
+    "SPY",
+    "META",
+    "TSLA",
+    "AMD",
+    "MU"
+  ],
+  "etfs": [
+    "SPY",
+    "QQQ",
+    "IWM",
+    "DIA",
+    "XLF",
+    "XLE",
+    "XLK",
+    "GLD"
+  ]
 }
+
