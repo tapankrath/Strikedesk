@@ -423,7 +423,7 @@
       <input type="text" placeholder="Search ticker or strategy…" id="searchInput">
     </div>
 
-    <button class="export-btn">
+    <button class="export-btn" id="exportBtn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Export
     </button>
@@ -587,6 +587,7 @@
   // data.json is either the committed seed file, or real output from the nightly
   // update-data GitHub Action (scripts/fetch_data.py) once that's run at least once.
   let trades = [];
+  let dataGeneratedAt = null;
 
   function formatDataDate(isoString){
     if(!isoString) return null;
@@ -603,6 +604,7 @@
       if(!res.ok) throw new Error(`data.json fetch failed: ${res.status}`);
       const json = await res.json();
       trades = Array.isArray(json.trades) ? json.trades : [];
+      dataGeneratedAt = json.generated_at || null;
 
       const dateLabel = formatDataDate(json.generated_at);
       if(dateLabel){
@@ -953,6 +955,85 @@
   }
 
   document.getElementById('copyPromptBtn').addEventListener('click', openPromptModal);
+
+  // --- Export ---
+  function downloadFile(filename, content, mime){
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function exportFilenameBase(){
+    const dateLabel = dataGeneratedAt ? dataGeneratedAt.slice(0,10) : new Date().toISOString().slice(0,10);
+    return `strikedesk-export-${dateLabel}`;
+  }
+
+  function buildExportJSON(list){
+    return JSON.stringify({ generated_at: dataGeneratedAt, exported_at: new Date().toISOString(), count: list.length, trades: list }, null, 2);
+  }
+
+  function buildExportCSV(list){
+    if(list.length === 0) return 'No setups match the active filters.';
+    const cols = Object.keys(list[0]);
+    const escape = (v) => {
+      const s = String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+    };
+    const rows = [cols.join(',')];
+    list.forEach(t => rows.push(cols.map(c => escape(t[c])).join(',')));
+    return rows.join('\n');
+  }
+
+  function buildExportXML(list){
+    const esc = (v) => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const rows = list.map(t => {
+      const fields = Object.entries(t).map(([k,v]) => `    <${k}>${esc(v)}</${k}>`).join('\n');
+      return `  <trade>\n${fields}\n  </trade>`;
+    }).join('\n');
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<trades count="${list.length}" generatedAt="${esc(dataGeneratedAt || '')}">\n${rows}\n</trades>`;
+  }
+
+  function openExportModal(){
+    const n = currentList.length;
+    tradeModal.innerHTML = `
+      <div class="modal-top">
+        <div class="ticker-sym" style="font-size:17px;">Export Results</div>
+        <button class="modal-close" id="modalCloseBtn">✕</button>
+      </div>
+      <div class="modal-strat">
+        Exports the <strong style="color:var(--text);">${n} setup${n===1?'':'s'}</strong> currently shown below — the same rows your active filters produced, not the full unfiltered dataset. Adjust filters and hit Apply first if you want a different set.
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; margin:16px 0;">
+        <button class="modal-copy-btn" id="exportJsonBtn" style="background:var(--amber);">Download JSON</button>
+        <button class="modal-copy-btn" id="exportCsvBtn" style="background:var(--surface); color:var(--text); border:1px solid var(--border-strong);">Download CSV (opens in Excel/Sheets)</button>
+        <button class="modal-copy-btn" id="exportXmlBtn" style="background:var(--surface); color:var(--text); border:1px solid var(--border-strong);">Download XML</button>
+      </div>
+      <div class="modal-note">Files download straight to your device — nothing is uploaded anywhere.</div>
+    `;
+    modalScrim.classList.add('show');
+    document.getElementById('modalCloseBtn').addEventListener('click', closeTradeModal);
+
+    document.getElementById('exportJsonBtn').addEventListener('click', ()=>{
+      downloadFile(`${exportFilenameBase()}.json`, buildExportJSON(currentList), 'application/json');
+      showToast(`Downloaded ${n} setup${n===1?'':'s'} as JSON`);
+    });
+    document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
+      downloadFile(`${exportFilenameBase()}.csv`, buildExportCSV(currentList), 'text/csv');
+      showToast(`Downloaded ${n} setup${n===1?'':'s'} as CSV`);
+    });
+    document.getElementById('exportXmlBtn').addEventListener('click', ()=>{
+      downloadFile(`${exportFilenameBase()}.xml`, buildExportXML(currentList), 'application/xml');
+      showToast(`Downloaded ${n} setup${n===1?'':'s'} as XML`);
+    });
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', openExportModal);
 
   document.addEventListener('click', (e)=>{
     const btn = e.target.closest('.row-action');
