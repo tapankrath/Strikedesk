@@ -1,6 +1,6 @@
 // StrikeDesk — minimal app-shell cache.
 // Bump CACHE_NAME whenever you ship a change, so old clients pick up the new files.
-const CACHE_NAME = 'strikedesk-v12';
+const CACHE_NAME = 'strikedesk-v13';
 const APP_SHELL = [
   './',
   './index.html',

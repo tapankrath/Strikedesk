@@ -108,11 +108,11 @@
   .export-btn:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
 
   /* ---------- LAYOUT ---------- */
-  .layout{ max-width:1080px; margin:0 auto; padding:20px 18px 100px; }
+  .layout{ max-width:1080px; margin:0 auto; padding:18px 18px 100px; }
 
   .section-label{
     font-size:10.5px; font-weight:700; letter-spacing:0.08em; color:var(--text-faint);
-    text-transform:uppercase; margin-bottom:10px;
+    text-transform:uppercase; margin-bottom:8px;
   }
 
   /* ---------- FILTER TOOLBAR ---------- */
@@ -202,11 +202,13 @@
 
   .sections-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 
-  /* apply/reset bar */
+  /* apply/reset/copy bar */
   .apply-bar{
-    display:flex; gap:10px; align-items:center;
     margin-top:14px; padding-top:14px; border-top:1px solid var(--border);
+    display:flex; flex-direction:column; gap:8px;
   }
+  .apply-bar-row{ display:flex; gap:8px; }
+  .apply-bar-row2{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
   .apply-btn{
     flex:1; background:var(--amber); color:#fff; border:none;
     padding:12px; border-radius:8px; font-weight:700; font-size:13.5px;
@@ -215,35 +217,18 @@
   .apply-btn:hover{ filter:brightness(1.08); }
   .apply-btn:focus-visible{ outline:2px solid var(--amber-strong); outline-offset:2px; }
   .reset-btn{
-    background:var(--surface); border:1px solid var(--border-strong); color:var(--text-dim);
-    padding:12px 16px; border-radius:8px; font-size:13px; font-weight:600;
+    flex:1; background:var(--surface); border:1px solid var(--border-strong); color:var(--text-dim);
+    padding:10px 14px; border-radius:8px; font-size:12.5px; font-weight:600;
     transition:border-color .12s, color .12s;
   }
   .reset-btn:hover{ border-color:var(--text-dim); color:var(--text); }
-  .active-count{ font-family:var(--mono); font-size:11.5px; color:var(--text-faint); white-space:nowrap; }
-
-  /* ---------- AI CARD ---------- */
-  .ai-card{
-    background:var(--amber-soft); border:1px solid var(--amber-border);
-    border-radius:var(--radius); padding:16px; margin-bottom:14px;
+  .copy-btn{
+    flex:1; background:var(--amber-soft); border:1px solid var(--amber-border); color:var(--amber-strong);
+    padding:10px 14px; border-radius:8px; font-size:12.5px; font-weight:700;
+    transition:filter .12s;
   }
-  .ai-card h4{
-    font-size:12.5px; font-weight:700; color:var(--amber-strong);
-    display:flex; align-items:center; gap:6px; margin-bottom:10px;
-  }
-  .ai-card select{
-    width:100%; background:var(--surface); border:1px solid var(--amber-border);
-    color:var(--text); font-size:12.5px; padding:9px 10px; border-radius:7px;
-    margin-bottom:9px;
-  }
-  .ai-card p{ font-size:11.5px; color:var(--text-dim); line-height:1.55; margin-bottom:11px; }
-  .ai-card p a{ color:var(--amber-strong); text-decoration:none; font-weight:600; }
-  .ai-card button{
-    width:100%; background:var(--amber); color:#fff;
-    border:none; padding:11px; border-radius:7px;
-    font-weight:700; font-size:12.5px;
-  }
-  .ai-card button:hover{ filter:brightness(1.08); }
+  .copy-btn:hover{ filter:brightness(0.97); }
+  .active-count{ font-family:var(--mono); font-size:11px; font-weight:600; color:var(--text-faint); white-space:nowrap; }
 
   /* ---------- RESULTS ---------- */
   .results-bar{
@@ -371,7 +356,7 @@
 
   /* ---------- MOBILE ---------- */
   @media (max-width: 720px){
-    .layout{ padding:14px 12px 90px; }
+    .layout{ padding:14px 12px 155px; }
     .header-inner{ padding:12px 14px; }
     .brand-sub{ display:none; }
     .data-status{ display:none; }
@@ -540,16 +525,15 @@
     </div>
 
     <div class="apply-bar">
-      <button class="reset-btn" id="resetFilters">Reset to defaults</button>
-      <span class="active-count" id="activeCountLabel">2 filters active</span>
-      <button class="apply-btn" id="applyFilters">Apply filters</button>
+      <div class="apply-bar-row">
+        <button class="reset-btn" id="resetFilters">Reset to defaults</button>
+        <button class="copy-btn" id="copyPromptBtn">✦ Copy Filters</button>
+      </div>
+      <div class="apply-bar-row2">
+        <span class="active-count" id="activeCountLabel">2 filters active</span>
+        <button class="apply-btn" id="applyFilters">Apply filters</button>
+      </div>
     </div>
-  </div>
-
-  <div class="ai-card">
-    <h4>✦ Copy Filters</h4>
-    <p>Copies your currently selected filters as plain text — paste them anywhere: notes, a chat, a teammate.</p>
-    <button id="copyPromptBtn">Copy Filters</button>
   </div>
 
   <div class="results-bar">
