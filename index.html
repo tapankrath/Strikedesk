@@ -344,6 +344,50 @@
     padding:11px; border-radius:8px; font-weight:700; font-size:13px;
   }
 
+  /* ticker chips */
+  .ticker-chips{
+    display:flex; flex-wrap:wrap; gap:7px;
+    padding:12px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+    margin:14px 0;
+  }
+  .ticker-chip{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--surface-2); border:1px solid var(--border-strong);
+    padding:5px 6px 5px 10px; border-radius:20px;
+    font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--text);
+  }
+  .ticker-chip.etf{ background:var(--amber-soft); border-color:var(--amber-border); color:var(--amber-strong); }
+  .ticker-chip button{
+    background:transparent; border:none; color:var(--text-faint);
+    width:16px; height:16px; border-radius:50%; font-size:13px; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .ticker-chip button:hover{ background:var(--border); color:var(--text); }
+  .ticker-add-row{ display:flex; gap:8px; margin-bottom:10px; }
+  .ticker-add-row input{
+    flex:1; background:var(--surface); border:1px solid var(--border-strong);
+    color:var(--text); font-size:13px; padding:9px 12px; border-radius:7px;
+    font-family:var(--mono); text-transform:uppercase;
+  }
+  .ticker-add-row button{
+    background:var(--amber); color:#fff; border:none;
+    width:38px; border-radius:7px; font-size:18px; font-weight:700; flex-shrink:0;
+  }
+  .ticker-add-row button:hover{ filter:brightness(1.08); }
+  .ticker-etf-check{ display:flex; align-items:center; gap:7px; font-size:12px; color:var(--text-dim); margin-bottom:14px; }
+  .ticker-etf-check input{ width:14px; height:14px; }
+  .ticker-json-box{
+    width:100%; min-height:100px; padding:10px; margin-bottom:12px;
+    font-family:var(--mono); font-size:10.5px; line-height:1.5; color:var(--text);
+    background:var(--surface-2); border:1px solid var(--border); border-radius:8px; resize:vertical;
+  }
+  .ticker-github-link{
+    display:block; text-align:center; font-size:12px; font-weight:600; color:var(--amber-strong);
+    padding:11px; border:1px solid var(--amber-border); border-radius:8px; text-decoration:none;
+    margin-top:8px;
+  }
+  .ticker-github-link:hover{ background:var(--amber-soft); }
+
   .toast{
     position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
     background:var(--text); color:#fff;
@@ -422,6 +466,11 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" placeholder="Search ticker or strategy…" id="searchInput">
     </div>
+
+    <button class="export-btn" id="tickersBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Tickers
+    </button>
 
     <button class="export-btn" id="exportBtn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1034,6 +1083,147 @@
   }
 
   document.getElementById('exportBtn').addEventListener('click', openExportModal);
+
+  // --- Manage Tickers ---
+  // The watchlist that scripts/fetch_data.py screens lives in tickers.json at the
+  // repo root — this panel can't write to GitHub directly (that would require a
+  // token embedded in this public page, which is a real security risk), so instead
+  // it prepares the exact new file content and links straight to GitHub's editor
+  // for a one-paste commit.
+  let workingTickers = [];
+  let workingEtfs = [];
+
+  function githubEditUrl(path){
+    const host = window.location.hostname;
+    if(!host.endsWith('.github.io')) return null;
+    const username = host.split('.')[0];
+    const repo = window.location.pathname.split('/').filter(Boolean)[0];
+    if(!repo) return null;
+    return `https://github.com/${username}/${repo}/edit/main/${path}`;
+  }
+
+  async function loadTickersConfig(){
+    try{
+      const res = await fetch('tickers.json', { cache:'no-store' });
+      if(!res.ok) throw new Error(`tickers.json fetch failed: ${res.status}`);
+      const json = await res.json();
+      workingTickers = Array.isArray(json.tickers) ? [...json.tickers] : [];
+      workingEtfs = Array.isArray(json.etfs) ? [...json.etfs] : [];
+    }catch(err){
+      console.error('Failed to load tickers.json', err);
+      workingTickers = [];
+      workingEtfs = [];
+    }
+  }
+
+  function tickersJsonContent(){
+    return JSON.stringify({ tickers: workingTickers, etfs: workingEtfs }, null, 2) + '\n';
+  }
+
+  function renderTickersModalBody(){
+    const chipsHtml = workingTickers.map(t => {
+      const isEtf = workingEtfs.includes(t);
+      return `<span class="ticker-chip${isEtf ? ' etf' : ''}">${t}${isEtf ? ' · ETF' : ''}<button data-remove-ticker="${t}" aria-label="Remove ${t}">✕</button></span>`;
+    }).join('');
+
+    const editUrl = githubEditUrl('tickers.json');
+
+    document.getElementById('tickerChips').innerHTML = chipsHtml || `<span style="color:var(--text-faint); font-size:12.5px;">No tickers yet — add one below.</span>`;
+    document.getElementById('tickerJsonBox').value = tickersJsonContent();
+
+    const linkEl = document.getElementById('tickerGithubLink');
+    if(editUrl){
+      linkEl.href = editUrl;
+      linkEl.style.display = 'block';
+    } else {
+      linkEl.style.display = 'none';
+    }
+  }
+
+  function addTicker(){
+    const input = document.getElementById('tickerAddInput');
+    const etfCheck = document.getElementById('tickerEtfCheck');
+    let sym = input.value.trim().toUpperCase();
+
+    if(!sym) return;
+    if(!/^[A-Z]{1,6}(\.[A-Z])?$/.test(sym)){
+      showToast(`"${sym}" doesn't look like a valid ticker`);
+      return;
+    }
+    if(workingTickers.includes(sym)){
+      showToast(`${sym} is already in the list`);
+      input.value = '';
+      return;
+    }
+
+    workingTickers.push(sym);
+    if(etfCheck.checked) workingEtfs.push(sym);
+
+    input.value = '';
+    etfCheck.checked = false;
+    renderTickersModalBody();
+  }
+
+  function removeTicker(sym){
+    workingTickers = workingTickers.filter(t => t !== sym);
+    workingEtfs = workingEtfs.filter(t => t !== sym);
+    renderTickersModalBody();
+  }
+
+  async function openTickersModal(){
+    tradeModal.innerHTML = `
+      <div class="modal-top">
+        <div class="ticker-sym" style="font-size:17px;">Manage Tickers</div>
+        <button class="modal-close" id="modalCloseBtn">✕</button>
+      </div>
+      <div class="modal-strat">Loading current watchlist…</div>
+    `;
+    modalScrim.classList.add('show');
+    document.getElementById('modalCloseBtn').addEventListener('click', closeTradeModal);
+
+    await loadTickersConfig();
+
+    tradeModal.innerHTML = `
+      <div class="modal-top">
+        <div class="ticker-sym" style="font-size:17px;">Manage Tickers</div>
+        <button class="modal-close" id="modalCloseBtn">✕</button>
+      </div>
+      <div class="modal-strat">This is the watchlist the nightly data pull screens. Adding a ticker here doesn't update your live site by itself — it prepares the file below for you to paste into GitHub.</div>
+
+      <div class="ticker-chips" id="tickerChips"></div>
+
+      <div class="ticker-add-row">
+        <input type="text" id="tickerAddInput" placeholder="e.g. GOOGL" maxlength="8" autocapitalize="characters">
+        <button id="tickerAddBtn" aria-label="Add ticker">+</button>
+      </div>
+      <label class="ticker-etf-check">
+        <input type="checkbox" id="tickerEtfCheck"> This is an ETF (affects the "ETFs only" filter)
+      </label>
+
+      <div class="modal-note">Updated <code>tickers.json</code> — copy this or use the link below:</div>
+      <textarea class="ticker-json-box" id="tickerJsonBox" readonly></textarea>
+      <button class="modal-copy-btn" id="tickerCopyBtn">Copy JSON</button>
+      <a class="ticker-github-link" id="tickerGithubLink" target="_blank" rel="noopener">Open tickers.json on GitHub to paste &amp; commit →</a>
+    `;
+
+    renderTickersModalBody();
+
+    document.getElementById('modalCloseBtn').addEventListener('click', closeTradeModal);
+    document.getElementById('tickerAddBtn').addEventListener('click', addTicker);
+    document.getElementById('tickerAddInput').addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){ e.preventDefault(); addTicker(); }
+    });
+    document.getElementById('tickerChips').addEventListener('click', (e)=>{
+      const btn = e.target.closest('[data-remove-ticker]');
+      if(btn) removeTicker(btn.dataset.removeTicker);
+    });
+    document.getElementById('tickerCopyBtn').addEventListener('click', async ()=>{
+      const ok = await copyText(tickersJsonContent());
+      showToast(ok ? 'tickers.json copied' : 'Copy blocked — select the text above and copy manually');
+    });
+  }
+
+  document.getElementById('tickersBtn').addEventListener('click', openTickersModal);
 
   document.addEventListener('click', (e)=>{
     const btn = e.target.closest('.row-action');

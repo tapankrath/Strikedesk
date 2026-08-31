@@ -19,6 +19,7 @@ your-repo/
 ├── manifest.json
 ├── service-worker.js
 ├── data.json
+├── tickers.json
 ├── .nojekyll
 ├── README.md
 ├── icons/
@@ -107,8 +108,15 @@ Several fields are approximations, clearly labeled as such in the code:
 - `score` (composite rating) is an illustrative weighted blend — adjust the weights in
   `composite_score()` in the script to match what you actually care about.
 
-To change which tickers get screened, edit the `TICKERS` list near the top of
-`scripts/fetch_data.py`.
+To change which tickers get screened, edit `tickers.json` at the repo root — either
+directly on GitHub, or use the **Tickers** button in the app itself, which lets you
+add/remove symbols with a `+` button and generates the exact updated file content plus
+a direct link to paste it into. The app can't commit to your repo on its own (that
+would need a GitHub access token embedded in a public page, which isn't safe), so it's
+a one-paste-then-commit flow rather than fully automatic — but no more hand-editing
+Python syntax. `scripts/fetch_data.py` reads this file at the start of every run, with
+a small built-in fallback list if `tickers.json` is ever missing or malformed, so a bad
+edit there can't break the nightly job entirely.
 
 ## Where this goes next
 
