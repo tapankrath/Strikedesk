@@ -169,24 +169,119 @@ def mid_price(row):
 
 # --- Per-ticker trade construction --------------------------------------------
 
-def pick_expiration(expirations, today):
-    best, best_diff = None, None
+def rank_expirations(expirations, today):
+    """
+    Returns expiration candidates as (exp_str, dte) tuples, closest-to-target-window
+    first. A list rather than a single pick, because a chosen expiration's chain can
+    turn out to be unusable (e.g. every relevant strike has NaN IV that day — this
+    happens on real Yahoo data more often than you'd expect) — the caller can then
+    fall back to the next-best expiration instead of giving up on the ticker entirely.
+    """
+    target_mid = (TARGET_DTE_MIN + TARGET_DTE_MAX) / 2
+    in_window, outside_window = [], []
     for exp_str in expirations:
         exp_date = datetime.strptime(exp_str, "%Y-%m-%d").date()
         dte = (exp_date - today).days
-        if TARGET_DTE_MIN <= dte <= TARGET_DTE_MAX:
-            diff = abs(dte - (TARGET_DTE_MIN + TARGET_DTE_MAX) / 2)
-            if best_diff is None or diff < best_diff:
-                best, best_diff = (exp_str, dte), diff
-    if best:
-        return best
-    # fallback: nearest expiration to the target window, even if outside it
-    for exp_str in expirations:
-        exp_date = datetime.strptime(exp_str, "%Y-%m-%d").date()
-        dte = (exp_date - today).days
-        if dte > 0:
-            return (exp_str, dte)
-    return None
+        if dte <= 0:
+            continue
+        diff = abs(dte - target_mid)
+        (in_window if TARGET_DTE_MIN <= dte <= TARGET_DTE_MAX else outside_window).append((diff, exp_str, dte))
+    in_window.sort(key=lambda x: x[0])
+    outside_window.sort(key=lambda x: x[0])
+    return [(exp_str, dte) for _, exp_str, dte in (in_window + outside_window)]
+
+
+MAX_EXPIRATION_ATTEMPTS = 3  # how many fallback expirations to try before giving up on a ticker
+
+
+def try_strategy_pick(strat, calls, puts, spot, dte):
+    """
+    Attempts to pick strikes for `strat` against one expiration's chain.
+    Returns (fields_dict, None) on success, or (None, reason_string) on failure —
+    the reason gets logged by the caller, and used to try the next expiration
+    candidate rather than silently giving up on the whole ticker.
+    """
+    if strat == "Short Put":
+        picked_row = pick_strike_by_delta(puts, spot, dte, TARGET_SHORT_DELTA, "put")
+        if not picked_row:
+            return None, "no put near target delta (chain may be illiquid/NaN-heavy)"
+        row, delta = picked_row
+        premium = mid_price(row)
+        strike = float(row["strike"])
+        return {
+            "premium": premium, "strike_for_pot": strike, "collateral": strike,
+            "breakeven": strike - premium, "max_loss": round((strike - premium) * 100, 2),
+            "strike_label": f"${strike:.0f} P", "iv": safe_float(row.get("impliedVolatility")) * 100,
+            "delta_for_output": delta,
+        }, None
+
+    if strat == "Covered Call":
+        picked_row = pick_strike_by_delta(calls, spot, dte, TARGET_SHORT_DELTA, "call")
+        if not picked_row:
+            return None, "no call near target delta (chain may be illiquid/NaN-heavy)"
+        row, delta = picked_row
+        premium = mid_price(row)
+        strike = float(row["strike"])
+        return {
+            "premium": premium, "strike_for_pot": strike, "collateral": spot,
+            "breakeven": spot - premium, "max_loss": round((spot - premium) * 100, 2),
+            "strike_label": f"${strike:.0f} C", "iv": safe_float(row.get("impliedVolatility")) * 100,
+            "delta_for_output": delta,
+        }, None
+
+    if strat == "Short Call":
+        picked_row = pick_strike_by_delta(calls, spot, dte, TARGET_SHORT_DELTA, "call")
+        if not picked_row:
+            return None, "no call near target delta (chain may be illiquid/NaN-heavy)"
+        row, delta = picked_row
+        premium = mid_price(row)
+        strike = float(row["strike"])
+        return {
+            "premium": premium, "strike_for_pot": strike, "collateral": strike,  # rough proxy; true naked-call risk is undefined
+            "breakeven": strike + premium, "max_loss": round(strike * 100, 2),  # illustrative cap, not a real max-loss figure
+            "strike_label": f"${strike:.0f} C", "iv": safe_float(row.get("impliedVolatility")) * 100,
+            "delta_for_output": delta,
+        }, None
+
+    if strat == "Bull Put Spread":
+        short_row = pick_strike_by_delta(puts, spot, dte, TARGET_SHORT_DELTA, "put")
+        if not short_row:
+            return None, "no put near target delta for short leg"
+        s_row, s_delta = short_row
+        short_strike = float(s_row["strike"])
+        lower_strikes = puts[puts["strike"] < short_strike].sort_values("strike", ascending=False)
+        if lower_strikes.empty:
+            return None, "no further-OTM strike available for the long leg"
+        long_row = lower_strikes.iloc[min(1, len(lower_strikes) - 1)]
+        long_strike = float(long_row["strike"])
+        premium = mid_price(s_row) - mid_price(long_row)
+        width = short_strike - long_strike
+        return {
+            "premium": premium, "strike_for_pot": short_strike, "collateral": width,
+            "breakeven": short_strike - premium, "max_loss": round((width - premium) * 100, 2),
+            "strike_label": f"${short_strike:.0f}/{long_strike:.0f}", "iv": safe_float(s_row.get("impliedVolatility")) * 100,
+            "delta_for_output": s_delta,
+        }, None
+
+    # Bear Call Spread
+    short_row = pick_strike_by_delta(calls, spot, dte, TARGET_SHORT_DELTA, "call")
+    if not short_row:
+        return None, "no call near target delta for short leg"
+    s_row, s_delta = short_row
+    short_strike = float(s_row["strike"])
+    higher_strikes = calls[calls["strike"] > short_strike].sort_values("strike")
+    if higher_strikes.empty:
+        return None, "no further-OTM strike available for the long leg"
+    long_row = higher_strikes.iloc[min(1, len(higher_strikes) - 1)]
+    long_strike = float(long_row["strike"])
+    premium = mid_price(s_row) - mid_price(long_row)
+    width = long_strike - short_strike
+    return {
+        "premium": premium, "strike_for_pot": short_strike, "collateral": width,
+        "breakeven": short_strike + premium, "max_loss": round((width - premium) * 100, 2),
+        "strike_label": f"${short_strike:.0f}/{long_strike:.0f}", "iv": safe_float(s_row.get("impliedVolatility")) * 100,
+        "delta_for_output": s_delta,
+    }, None
 
 
 def build_trade_for_ticker(ticker_symbol, index):
@@ -210,23 +305,47 @@ def build_trade_for_ticker(ticker_symbol, index):
         if not expirations:
             print(f"  skip {ticker_symbol}: no options listed")
             return None
-        picked = pick_expiration(expirations, today)
-        if not picked:
-            print(f"  skip {ticker_symbol}: no usable expiration")
+
+        expiration_candidates = rank_expirations(expirations, today)
+        if not expiration_candidates:
+            print(f"  skip {ticker_symbol}: no usable expiration (all listed dates are in the past or unparsable)")
             return None
-        exp_str, dte = picked
 
-        chain = tk.option_chain(exp_str)
-        calls, puts = chain.calls, chain.puts
+        is_etf = ticker_symbol in KNOWN_ETFS
 
-        total_call_oi = calls["openInterest"].fillna(0).sum()
-        total_put_oi = puts["openInterest"].fillna(0).sum()
-        total_call_vol = calls["volume"].fillna(0).sum()
-        total_put_vol = puts["volume"].fillna(0).sum()
-        pc_oi = round(total_put_oi / total_call_oi, 2) if total_call_oi else 0
-        pc_vol = round(total_put_vol / total_call_vol, 2) if total_call_vol else 0
+        # strategy selection: uptrend -> bullish rotation, downtrend -> bearish rotation
+        if uptrend:
+            strat = ["Short Put", "Covered Call", "Bull Put Spread"][index % 3]
+            side = "bull"
+        else:
+            strat = ["Short Call", "Bear Call Spread"][index % 2]
+            side = "bear"
 
-        # earnings within the option's window?
+        # Try each expiration candidate in order until one has a usable chain for
+        # this strategy — a single bad/illiquid expiration shouldn't sink the ticker.
+        pick, exp_str, dte, pc_oi, pc_vol = None, None, None, 0, 0
+        failure_reasons = []
+        for attempt, (cand_exp, cand_dte) in enumerate(expiration_candidates[:MAX_EXPIRATION_ATTEMPTS]):
+            chain = tk.option_chain(cand_exp)
+            calls, puts = chain.calls, chain.puts
+            fields, reason = try_strategy_pick(strat, calls, puts, spot, cand_dte)
+            if fields:
+                pick, exp_str, dte = fields, cand_exp, cand_dte
+                total_call_oi = calls["openInterest"].fillna(0).sum()
+                total_put_oi = puts["openInterest"].fillna(0).sum()
+                total_call_vol = calls["volume"].fillna(0).sum()
+                total_put_vol = puts["volume"].fillna(0).sum()
+                pc_oi = round(total_put_oi / total_call_oi, 2) if total_call_oi else 0
+                pc_vol = round(total_put_vol / total_call_vol, 2) if total_call_vol else 0
+                break
+            failure_reasons.append(f"{cand_exp} ({cand_dte}d): {reason}")
+
+        if not pick:
+            tried = len(failure_reasons)
+            print(f"  skip {ticker_symbol}: {strat} unusable across {tried} expiration(s) tried — {'; '.join(failure_reasons)}")
+            return None
+
+        # earnings within the chosen expiration's window?
         earnings_soon = False
         try:
             edates = tk.get_earnings_dates(limit=4)
@@ -239,92 +358,8 @@ def build_trade_for_ticker(ticker_symbol, index):
         except Exception:
             pass  # earnings calendar not always available — leave as False
 
-        is_etf = ticker_symbol in KNOWN_ETFS
-
-        # strategy selection: uptrend -> bullish rotation, downtrend -> bearish rotation
-        if uptrend:
-            strat = ["Short Put", "Covered Call", "Bull Put Spread"][index % 3]
-            side = "bull"
-        else:
-            strat = ["Short Call", "Bear Call Spread"][index % 2]
-            side = "bear"
-
-        if strat == "Short Put":
-            picked_row = pick_strike_by_delta(puts, spot, dte, TARGET_SHORT_DELTA, "put")
-            if not picked_row:
-                return None
-            row, delta = picked_row
-            premium = mid_price(row)
-            strike = float(row["strike"])
-            collateral = strike
-            breakeven = strike - premium
-            max_loss = round((strike - premium) * 100, 2)
-            strike_label = f"${strike:.0f} P"
-            iv = safe_float(row.get("impliedVolatility")) * 100
-
-        elif strat == "Covered Call":
-            picked_row = pick_strike_by_delta(calls, spot, dte, TARGET_SHORT_DELTA, "call")
-            if not picked_row:
-                return None
-            row, delta = picked_row
-            premium = mid_price(row)
-            strike = float(row["strike"])
-            collateral = spot
-            breakeven = spot - premium
-            max_loss = round((spot - premium) * 100, 2)
-            strike_label = f"${strike:.0f} C"
-            iv = safe_float(row.get("impliedVolatility")) * 100
-
-        elif strat == "Short Call":
-            picked_row = pick_strike_by_delta(calls, spot, dte, TARGET_SHORT_DELTA, "call")
-            if not picked_row:
-                return None
-            row, delta = picked_row
-            premium = mid_price(row)
-            strike = float(row["strike"])
-            collateral = strike  # rough proxy; true naked-call risk is undefined
-            breakeven = strike + premium
-            max_loss = round(strike * 100, 2)  # illustrative cap, not a real max-loss figure
-            strike_label = f"${strike:.0f} C"
-            iv = safe_float(row.get("impliedVolatility")) * 100
-
-        elif strat == "Bull Put Spread":
-            short_row = pick_strike_by_delta(puts, spot, dte, TARGET_SHORT_DELTA, "put")
-            if not short_row:
-                return None
-            s_row, s_delta = short_row
-            short_strike = float(s_row["strike"])
-            lower_strikes = puts[puts["strike"] < short_strike].sort_values("strike", ascending=False)
-            if lower_strikes.empty:
-                return None
-            long_row = lower_strikes.iloc[min(1, len(lower_strikes) - 1)]  # a couple strikes further OTM
-            long_strike = float(long_row["strike"])
-            premium = mid_price(s_row) - mid_price(long_row)
-            width = short_strike - long_strike
-            collateral = width
-            breakeven = short_strike - premium
-            max_loss = round((width - premium) * 100, 2)
-            strike_label = f"${short_strike:.0f}/{long_strike:.0f}"
-            iv = safe_float(s_row.get("impliedVolatility")) * 100
-
-        else:  # Bear Call Spread
-            short_row = pick_strike_by_delta(calls, spot, dte, TARGET_SHORT_DELTA, "call")
-            if not short_row:
-                return None
-            s_row, s_delta = short_row
-            short_strike = float(s_row["strike"])
-            higher_strikes = calls[calls["strike"] > short_strike].sort_values("strike")
-            if higher_strikes.empty:
-                return None
-            long_row = higher_strikes.iloc[min(1, len(higher_strikes) - 1)]
-            long_strike = float(long_row["strike"])
-            premium = mid_price(s_row) - mid_price(long_row)
-            width = long_strike - short_strike
-            collateral = width
-            breakeven = short_strike + premium
-            max_loss = round((width - premium) * 100, 2)
-            strike_label = f"${short_strike:.0f}/{long_strike:.0f}"
-            iv = safe_float(s_row.get("impliedVolatility")) * 100
+        premium = pick["premium"]
+        collateral = pick["collateral"]
 
         if premium <= 0 or collateral <= 0:
             print(f"  skip {ticker_symbol}: unusable premium/collateral")
@@ -339,9 +374,10 @@ def build_trade_for_ticker(ticker_symbol, index):
             print(f"  skip {ticker_symbol}: implausible annualized profit ({ann_profit}%), likely a thin/degenerate quote")
             return None
 
+        iv = pick["iv"]
         daily_return = round(premium * 100 / dte, 2)
-        pot = probability_of_touch(bs_delta(spot, strike if strat != "Bull Put Spread" and strat != "Bear Call Spread" else short_strike, dte, iv / 100 if iv else 0.3, "put" if side == "bull" else "call"))
-        margin_of_safety = bool(atr and abs(spot - (strike if strat not in ("Bull Put Spread", "Bear Call Spread") else short_strike)) >= atr)
+        pot = probability_of_touch(bs_delta(spot, pick["strike_for_pot"], dte, iv / 100 if iv else 0.3, "put" if side == "bull" else "call"))
+        margin_of_safety = bool(atr and abs(spot - pick["strike_for_pot"]) >= atr)
         exp_label = datetime.strptime(exp_str, "%Y-%m-%d").strftime("%b %-d") if sys.platform != "win32" else datetime.strptime(exp_str, "%Y-%m-%d").strftime("%b %d").replace(" 0", " ")
         score = composite_score(ann_profit, pot, ivr)
 
@@ -350,7 +386,7 @@ def build_trade_for_ticker(ticker_symbol, index):
             "strat": strat,
             "side": side,
             "isETF": is_etf,
-            "strike": strike_label,
+            "strike": pick["strike_label"],
             "exp": exp_label,
             "dte": dte,
             "pot": pot,
@@ -364,11 +400,11 @@ def build_trade_for_ticker(ticker_symbol, index):
             "ema": bool(near_ema),
             "earningsSoon": earnings_soon,
             "marginOfSafety": margin_of_safety,
-            "delta": round(s_delta if strat in ("Bull Put Spread", "Bear Call Spread") else delta, 2),
+            "delta": round(pick["delta_for_output"], 2),
             "iv": round(iv, 1),
             "premium": round(premium, 2),
-            "breakeven": round(breakeven, 2),
-            "maxLoss": max_loss,
+            "breakeven": round(pick["breakeven"], 2),
+            "maxLoss": pick["max_loss"],
             "pcOI": pc_oi,
             "pcVol": pc_vol,
         }
