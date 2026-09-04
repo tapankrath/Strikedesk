@@ -144,6 +144,24 @@ def composite_score(ann_profit, pot, ivr):
     return round(min(10, max(1, score)), 1)
 
 
+def chain_diagnostics(df):
+    """
+    Describes what a chain actually contained, for logging when strike-picking
+    fails. The distinction matters a lot: 0 rows means Yahoo likely blocked or
+    rate-limited the request (a known risk running yfinance from shared CI IP
+    ranges); rows present but no valid IV means a stale/garbage snapshot; rows
+    with valid IV but still no match means the target delta genuinely wasn't
+    available that day, which is a data problem, not a request problem.
+    """
+    if df is None or len(df) == 0:
+        return "chain came back with 0 rows — likely blocked/rate-limited by Yahoo, not a data-quality issue"
+    ivs = df["impliedVolatility"].apply(lambda v: safe_float(v, default=float("nan")))
+    valid = ivs[(ivs > 0) & (~ivs.isna())]
+    if len(valid) == 0:
+        return f"{len(df)} rows but none had valid IV — likely a stale/blocked Yahoo snapshot"
+    return f"{len(df)} rows, {len(valid)} with valid IV (range {valid.min():.2f}-{valid.max():.2f})"
+
+
 def pick_strike_by_delta(chain_df, spot, dte_days, target_delta, option_type):
     """Return the chain row whose computed delta is closest to target_delta."""
     best_row, best_diff = None, None
@@ -204,7 +222,7 @@ def try_strategy_pick(strat, calls, puts, spot, dte):
     if strat == "Short Put":
         picked_row = pick_strike_by_delta(puts, spot, dte, TARGET_SHORT_DELTA, "put")
         if not picked_row:
-            return None, "no put near target delta (chain may be illiquid/NaN-heavy)"
+            return None, f"no put near target delta — {chain_diagnostics(puts)}"
         row, delta = picked_row
         premium = mid_price(row)
         strike = float(row["strike"])
@@ -218,7 +236,7 @@ def try_strategy_pick(strat, calls, puts, spot, dte):
     if strat == "Covered Call":
         picked_row = pick_strike_by_delta(calls, spot, dte, TARGET_SHORT_DELTA, "call")
         if not picked_row:
-            return None, "no call near target delta (chain may be illiquid/NaN-heavy)"
+            return None, f"no call near target delta — {chain_diagnostics(calls)}"
         row, delta = picked_row
         premium = mid_price(row)
         strike = float(row["strike"])
@@ -232,7 +250,7 @@ def try_strategy_pick(strat, calls, puts, spot, dte):
     if strat == "Short Call":
         picked_row = pick_strike_by_delta(calls, spot, dte, TARGET_SHORT_DELTA, "call")
         if not picked_row:
-            return None, "no call near target delta (chain may be illiquid/NaN-heavy)"
+            return None, f"no call near target delta — {chain_diagnostics(calls)}"
         row, delta = picked_row
         premium = mid_price(row)
         strike = float(row["strike"])
@@ -246,7 +264,7 @@ def try_strategy_pick(strat, calls, puts, spot, dte):
     if strat == "Bull Put Spread":
         short_row = pick_strike_by_delta(puts, spot, dte, TARGET_SHORT_DELTA, "put")
         if not short_row:
-            return None, "no put near target delta for short leg"
+            return None, f"no put near target delta for short leg — {chain_diagnostics(puts)}"
         s_row, s_delta = short_row
         short_strike = float(s_row["strike"])
         lower_strikes = puts[puts["strike"] < short_strike].sort_values("strike", ascending=False)
@@ -266,7 +284,7 @@ def try_strategy_pick(strat, calls, puts, spot, dte):
     # Bear Call Spread
     short_row = pick_strike_by_delta(calls, spot, dte, TARGET_SHORT_DELTA, "call")
     if not short_row:
-        return None, "no call near target delta for short leg"
+        return None, f"no call near target delta for short leg — {chain_diagnostics(calls)}"
     s_row, s_delta = short_row
     short_strike = float(s_row["strike"])
     higher_strikes = calls[calls["strike"] > short_strike].sort_values("strike")
