@@ -25,7 +25,7 @@ jobs:
         run: pip install -r scripts/requirements.txt
 
       - name: Fetch data
-        run: python scripts/fetch_data.py
+        run: python -u scripts/fetch_data.py
 
       - name: Commit updated data.json
         run: |
