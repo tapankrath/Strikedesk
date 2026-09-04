@@ -311,6 +311,19 @@ def build_trade_for_ticker(ticker_symbol, index):
             return None
 
         spot = float(history["Close"].iloc[-1])
+        if math.isnan(spot) or spot <= 0:
+            # the most recent bar is occasionally incomplete/NaN right after close —
+            # a NaN spot silently poisons every single strike's delta calculation
+            # downstream (spot<=0 doesn't catch NaN; NaN just propagates through the
+            # math with no error), which looks like "no strike matched" across the
+            # entire chain rather than the actual, single-point root cause. Try
+            # falling back a day before giving up.
+            if len(history) >= 2:
+                spot = float(history["Close"].iloc[-2])
+            if math.isnan(spot) or spot <= 0:
+                print(f"  skip {ticker_symbol}: spot price is invalid/NaN (most recent close data looks broken)")
+                return None
+
         ema8 = compute_ema(history["Close"], 8).iloc[-1]
         ema20 = compute_ema(history["Close"], 20).iloc[-1]
         uptrend = ema8 > ema20
