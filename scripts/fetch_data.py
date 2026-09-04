@@ -86,8 +86,24 @@ def bs_delta(spot, strike, dte_days, iv, option_type, r=RISK_FREE_RATE):
     return float(norm.cdf(d1) - 1)
 
 
+def safe_float(v, default=0.0):
+    """float() that treats NaN (and bad input) as `default` instead of propagating NaN.
+    Needed because Python's `x or default` idiom does NOT catch NaN — NaN is truthy —
+    and NaN silently passes any `<= 0` / `> 0` comparison (all NaN comparisons are False).
+    Both of those gaps let real Yahoo data (which frequently has NaN IV/price fields
+    on illiquid strikes) sail past guards that looked like they should have caught it.
+    """
+    try:
+        f = float(v)
+        return default if math.isnan(f) else f
+    except (TypeError, ValueError):
+        return default
+
+
 def probability_of_touch(delta):
     """Rough trader heuristic, not a rigorous barrier-option calculation."""
+    if delta is None or math.isnan(delta):
+        return 50  # neutral fallback rather than crashing the whole ticker
     return min(100, round(abs(delta) * 2 * 100))
 
 
@@ -132,10 +148,12 @@ def pick_strike_by_delta(chain_df, spot, dte_days, target_delta, option_type):
     """Return the chain row whose computed delta is closest to target_delta."""
     best_row, best_diff = None, None
     for _, row in chain_df.iterrows():
-        iv = row.get("impliedVolatility") or 0
+        iv = safe_float(row.get("impliedVolatility"), default=0.0)
         if iv <= 0:
             continue
         delta = bs_delta(spot, row["strike"], dte_days, iv, option_type)
+        if math.isnan(delta):
+            continue
         diff = abs(abs(delta) - target_delta)
         if best_diff is None or diff < best_diff:
             best_diff, best_row = diff, (row, delta)
@@ -143,10 +161,10 @@ def pick_strike_by_delta(chain_df, spot, dte_days, target_delta, option_type):
 
 
 def mid_price(row):
-    bid, ask = row.get("bid") or 0, row.get("ask") or 0
+    bid, ask = safe_float(row.get("bid")), safe_float(row.get("ask"))
     if bid > 0 and ask > 0:
         return (bid + ask) / 2
-    return row.get("lastPrice") or 0
+    return safe_float(row.get("lastPrice"))
 
 
 # --- Per-ticker trade construction --------------------------------------------
@@ -242,7 +260,7 @@ def build_trade_for_ticker(ticker_symbol, index):
             breakeven = strike - premium
             max_loss = round((strike - premium) * 100, 2)
             strike_label = f"${strike:.0f} P"
-            iv = float(row.get("impliedVolatility") or 0) * 100
+            iv = safe_float(row.get("impliedVolatility")) * 100
 
         elif strat == "Covered Call":
             picked_row = pick_strike_by_delta(calls, spot, dte, TARGET_SHORT_DELTA, "call")
@@ -255,7 +273,7 @@ def build_trade_for_ticker(ticker_symbol, index):
             breakeven = spot - premium
             max_loss = round((spot - premium) * 100, 2)
             strike_label = f"${strike:.0f} C"
-            iv = float(row.get("impliedVolatility") or 0) * 100
+            iv = safe_float(row.get("impliedVolatility")) * 100
 
         elif strat == "Short Call":
             picked_row = pick_strike_by_delta(calls, spot, dte, TARGET_SHORT_DELTA, "call")
@@ -268,7 +286,7 @@ def build_trade_for_ticker(ticker_symbol, index):
             breakeven = strike + premium
             max_loss = round(strike * 100, 2)  # illustrative cap, not a real max-loss figure
             strike_label = f"${strike:.0f} C"
-            iv = float(row.get("impliedVolatility") or 0) * 100
+            iv = safe_float(row.get("impliedVolatility")) * 100
 
         elif strat == "Bull Put Spread":
             short_row = pick_strike_by_delta(puts, spot, dte, TARGET_SHORT_DELTA, "put")
@@ -287,7 +305,7 @@ def build_trade_for_ticker(ticker_symbol, index):
             breakeven = short_strike - premium
             max_loss = round((width - premium) * 100, 2)
             strike_label = f"${short_strike:.0f}/{long_strike:.0f}"
-            iv = float(s_row.get("impliedVolatility") or 0) * 100
+            iv = safe_float(s_row.get("impliedVolatility")) * 100
 
         else:  # Bear Call Spread
             short_row = pick_strike_by_delta(calls, spot, dte, TARGET_SHORT_DELTA, "call")
@@ -306,7 +324,7 @@ def build_trade_for_ticker(ticker_symbol, index):
             breakeven = short_strike + premium
             max_loss = round((width - premium) * 100, 2)
             strike_label = f"${short_strike:.0f}/{long_strike:.0f}"
-            iv = float(s_row.get("impliedVolatility") or 0) * 100
+            iv = safe_float(s_row.get("impliedVolatility")) * 100
 
         if premium <= 0 or collateral <= 0:
             print(f"  skip {ticker_symbol}: unusable premium/collateral")
