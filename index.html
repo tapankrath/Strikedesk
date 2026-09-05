@@ -346,6 +346,26 @@
   .mm-label{ font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; }
   .mm-val{ font-family:var(--mono); font-size:14.5px; font-weight:700; }
   .modal-note{ font-size:12px; color:var(--text-dim); line-height:1.55; margin-bottom:16px; }
+
+  .news-section-header{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top:16px; margin-bottom:10px;
+  }
+  .sentiment-badge{
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11px; font-weight:700; padding:3px 9px;
+    border:1px solid; border-radius:20px;
+  }
+  .sentiment-dot{ width:6px; height:6px; border-radius:50%; }
+  .news-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+  .news-headline{
+    display:block; padding:10px 12px; border:1px solid var(--border); border-radius:8px;
+    text-decoration:none; transition:border-color .12s, background .12s;
+  }
+  .news-headline:hover{ border-color:var(--border-strong); background:var(--surface-2); }
+  .news-headline-title{ font-size:12.5px; font-weight:600; color:var(--text); line-height:1.4; margin-bottom:4px; }
+  .news-headline-meta{ font-size:10.5px; color:var(--text-faint); font-weight:500; display:flex; gap:6px; }
+  .news-empty{ font-size:12px; color:var(--text-faint); padding:10px 0; }
   .modal-copy-btn{
     width:100%; background:var(--amber); color:#fff; border:none;
     padding:11px; border-radius:8px; font-weight:700; font-size:13px;
@@ -928,6 +948,27 @@
   const tradeModal = document.getElementById('tradeModal');
 
   function openTradeModal(t){
+    const sentimentLabel = t.newsSentimentLabel || 'Neutral';
+    const sentimentColor = sentimentLabel === 'Positive' ? 'var(--green)' : sentimentLabel === 'Negative' ? 'var(--red)' : 'var(--text-faint)';
+    const hasNews = Array.isArray(t.newsHeadlines) && t.newsHeadlines.length > 0;
+
+    const headlinesHtml = hasNews
+      ? t.newsHeadlines.map(h => {
+          const s = typeof h.sentiment === 'number' ? h.sentiment : null;
+          const sColor = s == null ? 'var(--text-faint)' : s > 0.1 ? 'var(--green)' : s < -0.1 ? 'var(--red)' : 'var(--text-faint)';
+          const sLabel = s == null ? '' : ` · ${s > 0 ? '+' : ''}${s.toFixed(2)}`;
+          return `
+            <a class="news-headline" href="${h.link || '#'}" target="_blank" rel="noopener">
+              <div class="news-headline-title">${h.title}</div>
+              <div class="news-headline-meta">${h.publisher || 'Unknown source'}<span style="color:${sColor}; font-family:var(--mono);">${sLabel}</span></div>
+            </a>`;
+        }).join('')
+      : `<div class="news-empty">No recent headlines available for this ticker.</div>`;
+
+    const earningsHtml = (t.daysToEarnings != null)
+      ? `<div class="mm-label" style="margin-top:2px;">Next Earnings</div><div class="mm-val">${t.daysToEarnings} day${t.daysToEarnings === 1 ? '' : 's'} away</div>`
+      : '';
+
     tradeModal.innerHTML = `
       <div class="modal-top">
         <div>
@@ -949,14 +990,23 @@
         <div><div class="mm-label">Put/Call Volume</div><div class="mm-val">${t.pcVol.toFixed(2)}</div></div>
         <div><div class="mm-label">Max Loss (est.)</div><div class="mm-val val-neg">$${t.maxLoss.toLocaleString()}</div></div>
         <div><div class="mm-label">Composite Rating</div><div class="mm-val" style="color:var(--amber-strong);">${t.score}.0 / 10</div></div>
+        ${earningsHtml}
       </div>
-      <div class="modal-note">Figures are computed from the prior session's EOD close and are for research purposes only — not a recommendation to enter this trade. Verify live pricing before placing an order.</div>
+
+      <div class="news-section-header">
+        <span class="mm-label" style="margin:0;">Recent News Sentiment</span>
+        <span class="sentiment-badge" style="color:${sentimentColor}; border-color:${sentimentColor};">
+          <span class="sentiment-dot" style="background:${sentimentColor};"></span>${sentimentLabel}
+        </span>
+      </div>
+      <div class="news-list">${headlinesHtml}</div>
+      <div class="modal-note">Sentiment is a lexicon-based score of headline text only (not full articles, not an LLM reading the story) — treat it as a rough gauge of recent press tone, not analysis. Figures are computed from the prior session's EOD close and are for research purposes only — not a recommendation to enter this trade. Verify live pricing before placing an order.</div>
       <button class="modal-copy-btn" id="modalCopyBtn">Copy trade summary</button>
     `;
     modalScrim.classList.add('show');
     document.getElementById('modalCloseBtn').addEventListener('click', closeTradeModal);
     document.getElementById('modalCopyBtn').addEventListener('click', async ()=>{
-      const summary = `${t.sym} ${t.strat} ${t.strike} · exp ${t.exp} (${t.dte}d) · POT ${t.pot}% · Ann. Profit +${t.ap}% · IV Rank ${t.ivr} · Composite ${t.score}.0`;
+      const summary = `${t.sym} ${t.strat} ${t.strike} · exp ${t.exp} (${t.dte}d) · POT ${t.pot}% · Ann. Profit +${t.ap}% · IV Rank ${t.ivr} · News: ${sentimentLabel} · Composite ${t.score}.0`;
       const ok = await copyText(summary);
       showToast(ok ? 'Trade summary copied' : 'Copy blocked — select the text manually');
     });

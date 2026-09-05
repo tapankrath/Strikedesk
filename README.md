@@ -107,6 +107,15 @@ Several fields are approximations, clearly labeled as such in the code:
   needs a year of historical *option* IV data that isn't freely available).
 - `score` (composite rating) is an illustrative weighted blend — adjust the weights in
   `composite_score()` in the script to match what you actually care about.
+- `newsSentiment` / `newsSentimentLabel` come from VADER, a lexicon-based sentiment
+  scorer, run only on headline text (not full articles) via a finance-vocabulary
+  augmented lexicon (`FINANCE_LEXICON` in the script — VADER's default dictionary badly
+  misreads financial language out of the box; e.g. it originally scored "shares tumble
+  after lawsuit" as *positive*). This is pattern-matching on words, not an LLM reading
+  the story for context — treat it as a rough gauge of recent press tone, not analysis.
+- `daysToEarnings` / `earningsSoon` come from Yahoo's earnings calendar. Full
+  earnings-call transcript analysis isn't included — that's realistically a paid-API
+  feature (AlphaVantage/Finnhub premium tiers), not something free/EOD tooling can do.
 
 To change which tickers get screened, edit `tickers.json` at the repo root — either
 directly on GitHub, or use the **Tickers** button in the app itself, which lets you
