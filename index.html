@@ -43,6 +43,8 @@
   *{box-sizing:border-box; margin:0; padding:0;}
   html{
     overflow-x:hidden;
+    overscroll-behavior-x:none;
+    touch-action:pan-y;
     -webkit-text-size-adjust:100%;
   }
   html,body{
@@ -54,9 +56,8 @@
     min-height:100vh;
     width:100%;
     max-width:100vw;
-    overflow-x:hidden;
-    overscroll-behavior-x:none;
-    touch-action:pan-y;
+  }
+  body{
     position:relative;
   }
   ::selection{ background:var(--amber-soft); color:var(--amber-strong); }
