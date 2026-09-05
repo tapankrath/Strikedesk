@@ -3,16 +3,15 @@
     "AAPL",
     "MSFT",
     "NVDA",
-    "XOM",
-    "JPM",
-    "SPY",
     "META",
     "TSLA",
     "AMD",
-    "MU"
+    "MU",
+    "GOOG",
+    "JPM",
+    "ORCL"
   ],
   "etfs": [
-    "SPY",
     "QQQ",
     "IWM",
     "DIA",
