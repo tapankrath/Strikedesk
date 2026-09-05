@@ -74,9 +74,11 @@
   .header-inner{
     max-width:1080px; margin:0 auto;
     padding:14px 18px;
-    display:flex; align-items:center; gap:14px;
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
     flex-wrap:wrap;
   }
+  .header-left{ display:flex; align-items:center; gap:14px; min-width:0; }
+  .header-right{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
   .brand{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
   .brand-mark{
     width:30px; height:30px; flex-shrink:0;
@@ -95,7 +97,7 @@
   .pulse-dot{ width:6px; height:6px; border-radius:50%; background:var(--green); }
 
   .search-wrap{
-    flex:1 1 200px; min-width:150px;
+    flex:1 1 100%; order:3; min-width:0;
     display:flex; align-items:center; gap:8px;
     background:var(--surface-2); border:1px solid var(--border);
     border-radius:8px; padding:8px 12px;
@@ -207,7 +209,7 @@
 
   .metric-grid{ display:grid; grid-template-columns:1fr 1fr; gap:2px 14px; }
 
-  .sections-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .sections-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; }
 
   /* apply/reset/copy bar */
   .apply-bar{
@@ -431,7 +433,6 @@
     .header-inner{ padding:12px 14px; }
     .brand-sub{ display:none; }
     .data-status{ display:none; }
-    .search-wrap{ order:3; flex-basis:100%; }
 
     .filter-grid{ grid-template-columns:1fr; }
     .metric-grid{ grid-template-columns:1fr; }
@@ -468,41 +469,45 @@
 
 <header>
   <div class="header-inner">
-    <div class="brand">
-      <div class="brand-mark">
-        <svg width="30" height="30" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-label="StrikeDesk logo">
-          <rect width="24" height="24" fill="#0E1116"/>
-          <rect x="2.5" y="14" width="3" height="6"  rx="1.2" fill="#14532D"/>
-          <rect x="8"   y="11" width="3" height="9"  rx="1.2" fill="#166534"/>
-          <rect x="13.5" y="8" width="3" height="12" rx="1.2" fill="#15803D"/>
-          <rect x="19"  y="4"  width="3" height="16" rx="1.2" fill="#22C55E"/>
-        </svg>
+    <div class="header-left">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg width="30" height="30" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-label="StrikeDesk logo">
+            <rect width="24" height="24" fill="#0E1116"/>
+            <rect x="2.5" y="14" width="3" height="6"  rx="1.2" fill="#14532D"/>
+            <rect x="8"   y="11" width="3" height="9"  rx="1.2" fill="#166534"/>
+            <rect x="13.5" y="8" width="3" height="12" rx="1.2" fill="#15803D"/>
+            <rect x="19"  y="4"  width="3" height="16" rx="1.2" fill="#22C55E"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-name">StrikeDesk</div>
+          <div class="brand-sub">READY-MADE OPTION TRADES</div>
+        </div>
       </div>
-      <div>
-        <div class="brand-name">StrikeDesk</div>
-        <div class="brand-sub">READY-MADE OPTION TRADES</div>
+
+      <div class="data-status">
+        <span class="pulse-dot" id="dataStatusDot"></span>
+        <span id="dataStatusText">Loading data…</span>
       </div>
     </div>
 
-    <div class="data-status">
-      <span class="pulse-dot" id="dataStatusDot"></span>
-      <span id="dataStatusText">Loading data…</span>
+    <div class="header-right">
+      <button class="export-btn" id="tickersBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Tickers
+      </button>
+
+      <button class="export-btn" id="exportBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
     </div>
 
     <div class="search-wrap">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" placeholder="Search ticker or strategy…" id="searchInput">
     </div>
-
-    <button class="export-btn" id="tickersBtn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-      Tickers
-    </button>
-
-    <button class="export-btn" id="exportBtn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Export
-    </button>
   </div>
 </header>
 
